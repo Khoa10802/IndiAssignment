@@ -19,6 +19,7 @@ CREATE_TABLE_QUERY = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME}(
 )"""
 
 INSERT_DATA_QUERY = f"""INSERT INTO {TABLE_NAME} VALUES(?, ?, ?, ?, ?)"""
+DROP_TABLE_QUERY = f"""DROP TABLE IF EXISTS {TABLE_NAME}"""
 
 class MTYPE(Enum):
     TEMP = "temperature"
@@ -111,7 +112,6 @@ class ConfigReader:
 
     def close_file(self):
         if hasattr(self, "_config_file") and not self._config_file.closed:
-            print("Closing the config file.")
             self._config_file.close()
 
 class DBLogger:
@@ -130,6 +130,7 @@ class DBLogger:
             if not self.__class__._initialized:
                 self._conn = lite.connect(DB_NAME)
                 self._cursor = self._conn.cursor()
+                self._cursor.execute(DROP_TABLE_QUERY)
                 self._cursor.execute(CREATE_TABLE_QUERY)
 
                 self._config_reader = ConfigReader()
@@ -197,6 +198,10 @@ class DBLogger:
                 temp, humid = self.__get_data()
                 self.log_data(temp, humid)
                 time.sleep(interval)
+
+    def close_db(self):
+        if hasattr(self, "_conn") and self._conn:
+            self._conn.close()
 
 if __name__ == "__main__":
     db_logger = DBLogger()
