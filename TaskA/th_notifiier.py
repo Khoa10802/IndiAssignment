@@ -1,4 +1,4 @@
-import json
+import json, re
 import threading
 from enum import Enum
 import sqlite3 as lite
@@ -78,6 +78,8 @@ class ConfigReader:
                 raise ValueError(f"Sub-key 'thresholds' in key '{mtype}' must contain the categories: {thresholds[mtype]}")
 
     def __validate_values(self):
+        value_validation_regex = r'^(<[+-]?\d+(?:\.\d+)?|[+-]?\d+(?:\.\d+)?/[+-]?\d+(?:\.\d+)?)$'
+
         for mtype in ("temperature", "humidity"):
             threshold_values = self._cdata[mtype]['thresholds'].values()
             interval_value = self._cdata[mtype]['interval']
@@ -85,10 +87,9 @@ class ConfigReader:
                 raise ValueError(f"Invalid data type for 'interval' in key '{mtype}'. Must be numeric.")
             for value in threshold_values:
                 if not isinstance(value, str):
-                    raise ValueError(f"Invalid data type in key '{mtype}'. Must be a string. i.e., '<5' or '5/10")
-
-    def __value_setters(self):
-        pass
+                    raise ValueError(f"Invalid data type in key '{mtype}'. Must be a string. i.e., '<5' or '5/10'")
+                if not re.match(value_validation_regex, value):
+                    raise ValueError(f"Invalid threshold value '{value}' in key '{mtype}'. i.e., '<5' or '5/10'.")
         
     def get_config_values(self, mtype=MTYPE.TEMP):
         if mtype == MTYPE.TEMP: return self._temp_threshholds, self._temp_interval
