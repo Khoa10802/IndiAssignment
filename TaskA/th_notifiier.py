@@ -78,7 +78,7 @@ class ConfigReader:
                 raise ValueError(f"Sub-key 'thresholds' in key '{mtype}' must contain the categories: {thresholds[mtype]}")
 
     def __validate_values(self):
-        value_validation_regex = r'^(<[+-]?\d+(?:\.\d+)?|[+-]?\d+(?:\.\d+)?/[+-]?\d+(?:\.\d+)?)$'
+        value_validation_regex = r'^([<>][+-]?\d+(?:\.\d+)?|[+-]?\d+(?:\.\d+)?/[+-]?\d+(?:\.\d+)?)$'
 
         for mtype in ("temperature", "humidity"):
             threshold_values = self._cdata[mtype]['thresholds'].values()
