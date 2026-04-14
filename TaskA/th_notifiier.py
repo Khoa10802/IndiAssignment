@@ -143,7 +143,7 @@ class DBLogger:
                 self.__class__._initialized = True
 
     def __categorizer(self, value, mtype='temperature'):
-        thresholds = self._configuration[mtype][0]
+        thresholds = self._configuration[mtype]
         temp_designation = ('Cold', 'Comfortable', 'Hot')
         humid_designation = ('Dry', 'Comfortable', 'Humid')
 
@@ -156,13 +156,13 @@ class DBLogger:
                     return designation[thresholds.index(threshold)]
                 continue
             elif threshold.startswith('<'):
-                a = threshold[1:]
-                if value < float(a):
+                c = threshold[1:]
+                if value < float(c):
                     return designation[thresholds.index(threshold)]
                 continue
             elif threshold.startswith('>'):
-                a = threshold[1:]
-                if value > float(a):
+                d = threshold[1:]
+                if value > float(d):
                     return designation[thresholds.index(threshold)]
                 continue
         
@@ -186,9 +186,18 @@ class DBLogger:
         return round(calibrated_temp, 2), round(curr_humid, 2)
 
     def start_log(self, limit=None):
-        interval = self._configuration[1]
+        interval = self._configuration['interval']
+        if limit is not None:
+            for _ in range(limit):
+                temp, humid = self.__get_data()
+                self.log_data(temp, humid)
+                time.sleep(interval)
+        else:
+            while True:
+                temp, humid = self.__get_data()
+                self.log_data(temp, humid)
+                time.sleep(interval)
 
 if __name__ == "__main__":
-    config_reader = ConfigReader()
-    config_values = config_reader.get_config_values()
-    print(config_values)
+    db_logger = DBLogger()
+    db_logger.log_data(22.5, 45.0)
