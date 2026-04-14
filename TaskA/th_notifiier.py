@@ -40,8 +40,7 @@ class ConfigReader:
             if not self.__class__._initialized:
                 self._config_file = open(JSON_FILE_NAME, "r")
                 self._cdata = json.load(self._config_file)
-                self.__validate_structure()
-                self.__validate_values()
+                self.__values_setter()
                 self.__class__._initialized = True
 
     def get_raw_data(self):
@@ -95,8 +94,11 @@ class ConfigReader:
         self.__validate_values()
 
         for mtype in ("temperature", "humidity"):
+            threshholds = self._cdata[mtype]['thresholds'].values()
+            interval = self._cdata[mtype]['interval']
+            packaged_data = (tuple(threshholds), interval)
+            self._config_data[mtype] = packaged_data
 
-        
     def get_config_values(self, mtype=MTYPE.TEMP):
         if mtype == MTYPE.TEMP: return self._config_data[MTYPE.TEMP.value]
         if mtype == MTYPE.HUMIDITY: return self._config_data[MTYPE.HUMIDITY.value]
