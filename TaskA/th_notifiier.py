@@ -24,11 +24,10 @@ class ConfigReader:
     _lock = threading.Lock()
     _initialized = False
 
-    _temp_threshholds = None
-    _temp_interval = None
-
-    _temp_threshholds = None
-    _humid_interval = None
+    _config_data = {
+        "temperature": (),
+        "humidity": ()
+    }
 
     def __new__(cls):
         with cls._lock:
@@ -90,10 +89,17 @@ class ConfigReader:
                     raise ValueError(f"Invalid data type in key '{mtype}'. Must be a string. i.e., '<5' or '5/10'")
                 if not re.match(value_validation_regex, value):
                     raise ValueError(f"Invalid threshold value '{value}' in key '{mtype}'. i.e., '<5' or '5/10'.")
+
+    def __values_setter(self):
+        self.__validate_structure()
+        self.__validate_values()
+
+        for mtype in ("temperature", "humidity"):
+
         
     def get_config_values(self, mtype=MTYPE.TEMP):
-        if mtype == MTYPE.TEMP: return self._temp_threshholds, self._temp_interval
-        if mtype == MTYPE.HUMIDITY: return self._humid_threshholds, self._humid_interval
+        if mtype == MTYPE.TEMP: return self._config_data[MTYPE.TEMP.value]
+        if mtype == MTYPE.HUMIDITY: return self._config_data[MTYPE.HUMIDITY.value]
 
     def close_file(self):
         if hasattr(self, "_config_file") and not self._config_file.closed:
