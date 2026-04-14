@@ -1,4 +1,4 @@
-import json, re
+import json, re, time
 import threading
 from enum import Enum
 import sqlite3 as lite
@@ -199,10 +199,15 @@ class DBLogger:
                 self.log_data(temp, humid)
                 time.sleep(interval)
 
+    def get_history(self):
+        return list(self._history.queue)
+
     def close_db(self):
         if hasattr(self, "_conn") and self._conn:
             self._conn.close()
 
 if __name__ == "__main__":
     db_logger = DBLogger()
-    db_logger.log_data(22.5, 45.0)
+    db_logger.start_log(limit=10)
+    print(db_logger.get_history())
+    db_logger.close_db()
