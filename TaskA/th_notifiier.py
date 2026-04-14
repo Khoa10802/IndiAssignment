@@ -102,7 +102,7 @@ class ConfigReader:
 
         for mtype in ("temperature", "humidity"):
             threshholds = self._cdata[mtype]['thresholds'].values()
-            self._config_data[mtype] = threshholds
+            self._config_data[mtype] = tuple(threshholds)
 
         self._config_data['interval'] = self._cdata['interval']
 
