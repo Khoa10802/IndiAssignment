@@ -99,16 +99,15 @@ class ConfigReader:
             packaged_data = (tuple(threshholds), interval)
             self._config_data[mtype] = packaged_data
 
-    def get_config_values(self, mtype=MTYPE.TEMP):
-        if mtype == MTYPE.TEMP: return self._config_data[MTYPE.TEMP.value]
-        if mtype == MTYPE.HUMIDITY: return self._config_data[MTYPE.HUMIDITY.value]
+    def get_config_values(self):
+        return self._config_data
 
     def close_file(self):
         if hasattr(self, "_config_file") and not self._config_file.closed:
             print("Closing the config file.")
             self._config_file.close()
 
-class Logger:
+class DBLogger:
     _instance = None
     _lock = threading.Lock()
     _initialized = False
@@ -125,14 +124,39 @@ class Logger:
                 self._conn = lite.connect(DB_NAME)
                 self._cursor = self._conn.cursor()
                 self._cursor.execute(CREATE_TABLE_QUERY)
+
+                self._config_reader = ConfigReader()
+                self._configuration = self._config_reader.get_config_values()
+                self._config_reader.close_file()
+
                 self.__class__._initialized = True
 
-    def __temp_categorize(self, configtemp):
-        pass
+    def __categorizer(self, value, mtype='temperature'):
+        thresholds = self._configuration[mtype][0]
+        temp_designation = ('Cold', 'Comfortable', 'Hot')
+        humid_designation = ('Dry', 'Comfortable', 'Humid')
+
+        designation = temp_designation if mtype == 'temperature' else humid_designation
+
+        for threshold in thresholds:
+            if '/' in threshold:
+                a, b = threshold.split('/')
+                if (value >= float(a) and value <= float(b)) or (value <= float(a) and value >= float(b)):
+                    return designation[thresholds.index(threshold)]
+                continue
+            elif threshold.startswith('<'):
+                a = threshold[1:]
+                if value < float(a):
+                    return designation[thresholds.index(threshold)]
+                continue
+            elif threshold.startswith('>'):
+                a = threshold[1:]
+                if value > float(a):
+                    return designation[thresholds.index(threshold)]
+                continue
+        
+        return None
 
 if __name__ == "__main__":
-    config_reader = ConfigReader()
-    temp_data = config_reader.get_config_values(MTYPE.TEMP)
-    print(temp_data)
-    
-    config_reader.close_file()
+    dblogger = DBLogger()
+    print(dblogger.categorizer(100.6, 'temperature'))
