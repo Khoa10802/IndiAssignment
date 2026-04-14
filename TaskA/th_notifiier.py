@@ -2,6 +2,8 @@ import json, re
 import threading
 from enum import Enum
 import sqlite3 as lite
+from queue import Queue
+import datetime as dt
 
 JSON_FILE_NAME = "config.json"
 DB_NAME = "datalog.db"
@@ -14,6 +16,8 @@ CREATE_TABLE_QUERY = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME}(
     humidity REAL,
     humidityCate TINYTEXT
 )"""
+
+INSERT_DATA_QUERY = f"""INSERT INTO {TABLE_NAME} VALUES(?, ?, ?, ?, ?)"""
 
 class MTYPE(Enum):
     TEMP = "temperature"
@@ -129,6 +133,8 @@ class DBLogger:
                 self._configuration = self._config_reader.get_config_values()
                 self._config_reader.close_file()
 
+                self._history = Queue(maxsize=5)
+
                 self.__class__._initialized = True
 
     def __categorizer(self, value, mtype='temperature'):
@@ -156,6 +162,18 @@ class DBLogger:
                 continue
         
         return None
+
+    def log_data(self, temp, humid)
+        if self._history.full(): self._history.get()
+
+        temp_cate = self.__categorizer(temp)
+        humid_cate = self.__categorizer(temp, "humidity")
+        curr_time = dt.datetime.now().strftime("%H:%M:%S")
+        
+        data = (curr_time, temp, temp_cate, humid, humid_cate)
+        self._history.put(data)
+        self._cursor.execute(INSERT_DATA_QUERY, data)
+        self._conn.commit()
 
 if __name__ == "__main__":
     dblogger = DBLogger()
