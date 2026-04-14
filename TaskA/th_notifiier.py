@@ -30,8 +30,9 @@ class ConfigReader:
     _initialized = False
 
     _config_data = {
-        "temperature": (),
-        "humidity": ()
+        "temperature": None,
+        "humidity": None,
+        "interval": None
     }
 
     def __new__(cls):
@@ -101,9 +102,9 @@ class ConfigReader:
 
         for mtype in ("temperature", "humidity"):
             threshholds = self._cdata[mtype]['thresholds'].values()
-            interval = self._cdata[mtype]['interval']
-            packaged_data = (tuple(threshholds), interval)
-            self._config_data[mtype] = packaged_data
+            self._config_data[mtype] = threshholds
+
+        self._config_data['interval'] = self._cdata['interval']
 
     def get_config_values(self):
         return self._config_data
@@ -167,7 +168,7 @@ class DBLogger:
         
         return None
 
-    def log_data(self, temp, humid)
+    def log_data(self, temp, humid):
         if self._history.full(): self._history.get()
 
         temp_cate = self.__categorizer(temp)
@@ -188,5 +189,6 @@ class DBLogger:
         interval = self._configuration[1]
 
 if __name__ == "__main__":
-    dblogger = DBLogger()
-    print(dblogger.categorizer(100.6, 'temperature'))
+    config_reader = ConfigReader()
+    config_values = config_reader.get_config_values()
+    print(config_values)
