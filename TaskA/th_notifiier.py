@@ -4,6 +4,7 @@ from enum import Enum
 import sqlite3 as lite
 from queue import Queue
 import datetime as dt
+from sense_hat import SenseHat
 
 JSON_FILE_NAME = "config.json"
 DB_NAME = "datalog.db"
@@ -53,10 +54,10 @@ class ConfigReader:
     def __validate_structure(self) -> bool:
         if not isinstance(self._cdata, dict):
             raise ValueError("Incorrect config file format.")
-        if len(self._cdata) != 2:
-            raise ValueError("Config file must contain exactly two keys: 'temperature' and 'humidity'.")
-        if 'temperature' not in self._cdata or 'humidity' not in self._cdata:
-            raise ValueError("Config file must contain keys 'temperature' and 'humidity'.")
+        if len(self._cdata) != 3:
+            raise ValueError("Config file must contain exactly three keys: 'temperature', 'humidity', and 'interval'.")
+        if 'temperature' not in self._cdata or 'humidity' not in self._cdata or 'interval' not in self._cdata:
+            raise ValueError("Config file must contain keys 'temperature', 'humidity', and 'interval'.")
 
         thresholds = {
             "temperature": ("cold", "comfortable", "hot"),
@@ -65,14 +66,14 @@ class ConfigReader:
 
         for mtype in ("temperature", "humidity"):
             if not isinstance(self._cdata[mtype], dict):
-                raise ValueError(f"Invalid data type for key '{mtype}'.")
-            if len(self._cdata[mtype]) != 2:
-                raise ValueError(f"Key '{mtype}' must contain exactly two sub-keys: 'thresholds' and 'interval'.")
-            if "thresholds" not in self._cdata[mtype] or "interval" not in self._cdata[mtype]:
-                raise ValueError(f"Key '{mtype}' must contain both 'thresholds' and 'interval' sub-keys.")
+                raise ValueError(f"Incorrect format for key '{mtype}'.")
+            if len(self._cdata[mtype]) != 1:
+                raise ValueError(f"Key '{mtype}' must contain exactly one sub-key: 'thresholds'.")
+            if "thresholds" not in self._cdata[mtype]:
+                raise ValueError(f"Key '{mtype}' must contain the 'thresholds' sub-key.")
 
             if not isinstance(self._cdata[mtype]['thresholds'], dict):
-                raise ValueError(f"Invalid data type for sub-key 'thresholds' in key '{mtype}'.")
+                raise ValueError(f"Incorrect format for sub-key 'thresholds' in key '{mtype}'.")
             if len(self._cdata[mtype]['thresholds']) != 3:
                 raise ValueError(f"Sub-key 'thresholds' in key '{mtype}' must contain exactly three categories: {thresholds[mtype]}.")
 
@@ -82,11 +83,12 @@ class ConfigReader:
     def __validate_values(self):
         value_validation_regex = r'^([<>][+-]?\d+(?:\.\d+)?|[+-]?\d+(?:\.\d+)?/[+-]?\d+(?:\.\d+)?)$'
 
+        interval_value = self._cdata['interval']
+        if not isinstance(interval_value, (int, float)):
+            raise ValueError(f"Invalid data type for 'interval'. Must be numeric.")
+
         for mtype in ("temperature", "humidity"):
             threshold_values = self._cdata[mtype]['thresholds'].values()
-            interval_value = self._cdata[mtype]['interval']
-            if not isinstance(interval_value, (int, float)):
-                raise ValueError(f"Invalid data type for 'interval' in key '{mtype}'. Must be numeric.")
             for value in threshold_values:
                 if not isinstance(value, str):
                     raise ValueError(f"Invalid data type in key '{mtype}'. Must be a string. i.e., '<5' or '5/10'")
@@ -135,6 +137,8 @@ class DBLogger:
 
                 self._history = Queue(maxsize=5)
 
+                self._sense = SenseHat()
+
                 self.__class__._initialized = True
 
     def __categorizer(self, value, mtype='temperature'):
@@ -174,6 +178,14 @@ class DBLogger:
         self._history.put(data)
         self._cursor.execute(INSERT_DATA_QUERY, data)
         self._conn.commit()
+
+    def __get_data(self):
+        calibrated_temp = (self._sense.get_temperature_from_pressure() + self._sense.get_temperature_from_humidity()) / 2
+        curr_humid = self._sense.get_humidity()
+        return round(calibrated_temp, 2), round(curr_humid, 2)
+
+    def start_log(self, limit=None):
+        interval = self._configuration[1]
 
 if __name__ == "__main__":
     dblogger = DBLogger()

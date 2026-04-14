@@ -4,15 +4,14 @@
             "cold": "<15",
             "comfortable": "15/28",
             "hot": ">28"
-        },
-        "interval": 5
+        }
     },
     "humidity": {
         "thresholds": {
             "dry": "<30",
             "comfortable": "30/60",
             "humid": ">60"
-        },
-        "interval": 10
-    }
+        }
+    },
+    "interval": 3
 }
