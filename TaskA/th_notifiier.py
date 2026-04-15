@@ -267,12 +267,6 @@ class DataDisplay():
     def __init__(self):
         with self.__class__._lock:
             if not self.__class__._initialized:
-                self._conn = lite.connect(DB_NAME)
-                self._cursor = self._conn.cursor()
-
-                self._data = self._cursor.execute(SELECT_QUERY)
-                self.close_db()
-
                 self._config_reader = ConfigReader()
                 self._config_interval = self._config_reader.get_config_interval()
                 self._config_reader.close_file()
@@ -334,10 +328,6 @@ class DataDisplay():
             self._screen[sn_index:sn_index+4] = second_number_matrix[i:i+4]
             fn_index += 8
             sn_index += 8
-
-    def close_db(self):
-        if hasattr(self, "_conn") and self._conn:
-            self._conn.close()
 
 if __name__ == "__main__":
     dataDisplay = DataDisplay()
