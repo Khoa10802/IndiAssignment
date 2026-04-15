@@ -239,7 +239,7 @@ class SenseHatCharacter:
 
                 self.__class__._initialized = True
 
-    def get_character(self, char: str, color=COLOR.WHITE) -> list:
+    def get_character_matrix(self, char: str, color=COLOR.WHITE) -> list:
         if len(char) != 1:
             raise ValueError("Input must be a single character.")
         if char not in self._characters:
@@ -304,7 +304,7 @@ class DataDisplay():
 
     def __write_letter(self, letter: str):
         shd = SenseHatCharacter()
-        letter_matrix = shd.get_character(letter, COLOR.RED)
+        letter_matrix = shd.get_character_matrix(letter, COLOR.RED)
 
         LETTER_START_INDEX = 2
         l_index = LETTER_START_INDEX
@@ -315,8 +315,8 @@ class DataDisplay():
 
     def __write_numbers(self, first: int, second: int):
         shd = SenseHatCharacter()
-        first_number_matrix = shd.get_character(str(first))
-        second_number_matrix = shd.get_character(str(second))
+        first_number_matrix = shd.get_character_matrix(str(first))
+        second_number_matrix = shd.get_character_matrix(str(second))
 
         FIRST_NUMBER_START_INDEX = 24
         SECOND_NUMBER_START_INDEX = 28
