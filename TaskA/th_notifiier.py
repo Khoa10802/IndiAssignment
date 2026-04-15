@@ -139,8 +139,6 @@ class DBLogger:
 
                 self._history = Queue(maxsize=5)
 
-                self._sense = SenseHat()
-
                 self.__class__._initialized = True
 
     def __categorizer(self, value, mtype='temperature'):
@@ -182,6 +180,7 @@ class DBLogger:
         self._conn.commit()
 
     def __get_data(self):
+        sense = SenseHat()
         calibrated_temp = (self._sense.get_temperature_from_pressure() + self._sense.get_temperature_from_humidity()) / 2
         curr_humid = self._sense.get_humidity()
         return round(calibrated_temp, 2), round(curr_humid, 2)
