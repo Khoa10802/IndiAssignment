@@ -187,8 +187,8 @@ class DBLogger:
 
     def __get_data(self):
         sense = SenseHat()
-        calibrated_temp = (self._sense.get_temperature_from_pressure() + self._sense.get_temperature_from_humidity()) / 2
-        curr_humid = self._sense.get_humidity()
+        calibrated_temp = (sense.get_temperature_from_pressure() + sense.get_temperature_from_humidity()) / 2
+        curr_humid = sense.get_humidity()
         return round(calibrated_temp, 2), round(curr_humid, 2)
 
     def start_log(self, limit=None):
@@ -240,6 +240,6 @@ class RecordDisplay():
 
 if __name__ == "__main__":
     db_logger = DBLogger()
-    db_logger.start_log(limit=10)
+    db_logger.start_log(limit=6)
     print(db_logger.get_history())
     db_logger.close_db()
