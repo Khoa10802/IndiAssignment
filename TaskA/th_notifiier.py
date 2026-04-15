@@ -150,6 +150,8 @@ class DBLogger:
                 self._configuration = self._config_reader.get_config_values()
                 self._config_reader.close_file()
 
+                self._data_display = DataDisplay()
+
                 self._history = Queue(maxsize=5)
 
                 self.__class__._initialized = True
@@ -192,6 +194,8 @@ class DBLogger:
         self._cursor.execute(INSERT_DATA_QUERY, data)
         self._conn.commit()
 
+        self._data_display.display_data(int(temp), int(humid))
+
     def __get_data(self):
         sense = SenseHat()
         calibrated_temp = (sense.get_temperature_from_pressure() + sense.get_temperature_from_humidity()) / 2
@@ -199,17 +203,17 @@ class DBLogger:
         return round(calibrated_temp, 2), round(curr_humid, 2)
 
     def start_log(self, limit=None):
-        interval = self._configuration['interval']
+        # interval = self._configuration['interval']
         if limit is not None:
             for _ in range(limit):
                 temp, humid = self.__get_data()
                 self.log_data(temp, humid)
-                time.sleep(interval)
+                # time.sleep(interval)
         else:
             while True:
                 temp, humid = self.__get_data()
                 self.log_data(temp, humid)
-                time.sleep(interval)
+                # time.sleep(interval)
 
     def get_history(self):
         return list(self._history.queue)
@@ -330,5 +334,6 @@ class DataDisplay():
             sn_index += 8
 
 if __name__ == "__main__":
-    dataDisplay = DataDisplay()
-    dataDisplay.display_data(13, 14)
+    db_logger = DBLogger()
+    db_logger.start_log(limit=6)
+    db_logger.close_db()
