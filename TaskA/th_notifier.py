@@ -203,17 +203,14 @@ class DBLogger:
         return round(calibrated_temp, 2), round(curr_humid, 2)
 
     def start_log(self, limit=None):
-        # interval = self._configuration['interval']
         if limit is not None:
             for _ in range(limit):
                 temp, humid = self.__get_data()
                 self.log_data(temp, humid)
-                # time.sleep(interval)
         else:
             while True:
                 temp, humid = self.__get_data()
                 self.log_data(temp, humid)
-                # time.sleep(interval)
 
     def get_history(self):
         return list(self._history.queue)
