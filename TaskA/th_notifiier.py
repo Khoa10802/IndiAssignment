@@ -49,6 +49,9 @@ class ConfigReader:
             if not self.__class__._initialized:
                 self._config_file = open(JSON_FILE_NAME, "r")
                 self._cdata = json.load(self._config_file)
+
+                self.close_file()
+
                 self.__values_setter()
                 self.__class__._initialized = True
 
