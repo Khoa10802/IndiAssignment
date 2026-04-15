@@ -143,6 +143,8 @@ class DBLogger:
                 self._configuration = self._config_reader.get_config_values()
                 self._config_reader.close_file()
 
+                self._history = Queue(maxsize=5)
+
                 self.__class__._initialized = True
 
     def __categorizer(self, value, mtype='temperature'):
@@ -179,6 +181,7 @@ class DBLogger:
         curr_time = dt.datetime.now().strftime("%H:%M:%S")
         
         data = (curr_time, temp, temp_cate, humid, humid_cate)
+        self._history.put(data)
         self._cursor.execute(INSERT_DATA_QUERY, data)
         self._conn.commit()
 
@@ -200,6 +203,9 @@ class DBLogger:
                 temp, humid = self.__get_data()
                 self.log_data(temp, humid)
                 time.sleep(interval)
+
+    def get_history(self):
+        return list(self._history.queue)
 
     def close_db(self):
         if hasattr(self, "_conn") and self._conn:
