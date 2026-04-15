@@ -119,6 +119,9 @@ class ConfigReader:
     def get_config_values(self):
         return self._config_data
 
+    def get_config_interval(self):
+        return self._config_data['interval']
+
     def close_file(self):
         if hasattr(self, "_config_file") and not self._config_file.closed:
             self._config_file.close()
