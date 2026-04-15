@@ -21,6 +21,8 @@ CREATE_TABLE_QUERY = f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME}(
 INSERT_DATA_QUERY = f"""INSERT INTO {TABLE_NAME} VALUES(?, ?, ?, ?, ?)"""
 DROP_TABLE_QUERY = f"""DROP TABLE IF EXISTS {TABLE_NAME}"""
 
+SELECT_QUERY = f"""SELECT * FROM {TABLE_NAME}"""
+
 class MTYPE(Enum):
     TEMP = "temperature"
     HUMIDITY = "humidity"
@@ -204,6 +206,28 @@ class DBLogger:
     def close_db(self):
         if hasattr(self, "_conn") and self._conn:
             self._conn.close()
+
+
+class RecordDisplay():
+    _instance = None
+    _lock = threading.Lock()
+    _initialized = False
+
+    def __new__(cls):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        with self.__class__._lock:
+            if not self.__class__._initialized:
+                self._conn = lite.connect(DB_NAME)
+                self._cursor = self._conn.cursor()
+
+                self._data = self._cursor.execute(SELECT_QUERY)
+
+                self.__class__._initialized = True
 
 if __name__ == "__main__":
     db_logger = DBLogger()
