@@ -1,10 +1,9 @@
-import json, re, time
-import threading
-from enum import Enum
+import json, re, time, threading
 import sqlite3 as lite
 from queue import Queue
 import datetime as dt
 from sense_hat import SenseHat
+from enum import Enum
 
 JSON_FILE_NAME = "config.json"
 DB_NAME = "datalog.db"
@@ -27,6 +26,7 @@ SELECT_QUERY = f"""SELECT * FROM {TABLE_NAME}"""
 class COLOR(Enum):
     BLACK = [0, 0, 0]
     WHITE = [255, 255, 255]
+    RED = [255, 0, 0]
 
 class ConfigReader:
     _instance = None
@@ -238,7 +238,7 @@ class SenseHatCharacter:
 
                 self.__class__._initialized = True
 
-    def get_character(self, char: str, color=COLOR.BLACK) -> list:
+    def get_character(self, char: str, color=COLOR.WHITE) -> list:
         if len(char) != 1:
             raise ValueError("Input must be a single character.")
         if char not in self._characters:
@@ -247,13 +247,13 @@ class SenseHatCharacter:
         pixel_char = self._characters[char]
         for index, p in enumerate(pixel_char):
             if p == 0:
-                pixel_char[index] = COLOR.WHITE.value
-            if p == 1:
                 pixel_char[index] = COLOR.BLACK.value
+            if p == 1:
+                pixel_char[index] = color.value
 
         return pixel_char
 
-class RecordDisplay():
+class DataDisplay():
     _instance = None
     _lock = threading.Lock()
     _initialized = False
@@ -273,14 +273,72 @@ class RecordDisplay():
                 self._data = self._cursor.execute(SELECT_QUERY)
                 self.close_db()
 
+                self._config_reader = ConfigReader()
+                self._config_interval = self._config_reader.get_config_interval()
+                self._config_reader.close_file()
+
+                self._screen = [COLOR.BLACK.value] * 64
+
                 self.__class__._initialized = True
+
+    def display_data(self, temp, humid):
+        sense = SenseHat()
+        DISPLAY_INTERVAL = 5
+        display_count = self._config_interval / DISPLAY_INTERVAL
+
+        i = 0
+        while i != display_count:
+            self.__write_letter("T")
+            first_digit = int(temp / 10)
+            second_digit = temp % 10
+            self.__write_numbers(str(first_digit), str(second_digit))
+            sense.set_pixels(self._screen)
+
+            time.sleep(5)
+            sense.clear(COLOR.BLACK.value)
+
+            self.__write_letter("H")
+            first_digit = int(humid / 10)
+            second_digit = humid % 10
+            self.__write_numbers(str(first_digit), str(second_digit))
+            sense.set_pixels(self._screen)
+
+            time.sleep(5)
+            sense.clear(COLOR.BLACK.value)
+            i += 2
+
+    def __write_letter(self, letter: str):
+        shd = SenseHatCharacter()
+        letter_matrix = shd.get_character(letter, COLOR.RED)
+
+        LETTER_START_INDEX = 2
+        l_index = LETTER_START_INDEX
+
+        for i in range(0, 10, 4):
+            self._screen[l_index:l_index+4] = letter_matrix[i:i+4]
+            l_index += 8
+
+    def __write_numbers(self, first: int, second: int):
+        shd = SenseHatCharacter()
+        first_number_matrix = shd.get_character(str(first))
+        second_number_matrix = shd.get_character(str(second))
+
+        FIRST_NUMBER_START_INDEX = 24
+        SECOND_NUMBER_START_INDEX = 28
+
+        fn_index = FIRST_NUMBER_START_INDEX
+        sn_index = SECOND_NUMBER_START_INDEX
+
+        for i in range(0, 17, 4):
+            self._screen[fn_index:fn_index+4] = first_number_matrix[i:i+4]
+            self._screen[sn_index:sn_index+4] = second_number_matrix[i:i+4]
+            fn_index += 8
+            sn_index += 8
 
     def close_db(self):
         if hasattr(self, "_conn") and self._conn:
             self._conn.close()
 
 if __name__ == "__main__":
-    db_logger = DBLogger()
-    db_logger.start_log(limit=6)
-    print(db_logger.get_history())
-    db_logger.close_db()
+    dataDisplay = DataDisplay()
+    dataDisplay.display_data(13, 14)
