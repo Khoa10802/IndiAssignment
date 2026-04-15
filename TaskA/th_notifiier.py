@@ -88,8 +88,12 @@ class ConfigReader:
         value_validation_regex = r'^([<>][+-]?\d+(?:\.\d+)?|[+-]?\d+(?:\.\d+)?/[+-]?\d+(?:\.\d+)?)$'
 
         interval_value = self._cdata['interval']
-        if not isinstance(interval_value, (int, float)):
-            raise ValueError(f"Invalid data type for 'interval'. Must be numeric.")
+        if not isinstance(interval_value, int):
+            raise ValueError("Invalid data type for 'interval'. Must be an integer.")
+        if interval_value <= 0:
+            raise ValueError("'interval' value must be a positive integer")
+        if (interval_value % 10) != 0:
+            raise ValueError("'interval' value must be a multiple of 10")
 
         for mtype in ("temperature", "humidity"):
             threshold_values = self._cdata[mtype]['thresholds'].values()
@@ -220,8 +224,13 @@ class RecordDisplay():
                 self._cursor = self._conn.cursor()
 
                 self._data = self._cursor.execute(SELECT_QUERY)
+                self.close_db()
 
                 self.__class__._initialized = True
+
+    def close_db(self):
+        if hasattr(self, "_conn") and self._conn:
+            self._conn.close()
 
 if __name__ == "__main__":
     db_logger = DBLogger()

@@ -13,5 +13,5 @@
             "humid": ">60"
         }
     },
-    "interval": 3
+    "interval": 10
 }
