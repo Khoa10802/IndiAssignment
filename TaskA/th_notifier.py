@@ -220,7 +220,7 @@ class DBLogger:
         sense = SenseHat()
         calibrated_temp = (sense.get_temperature_from_pressure() + sense.get_temperature_from_humidity()) / 2
         curr_humid = sense.get_humidity()
-        return round(calibrated_temp, 2), round(curr_humid, 2)
+        return round(calibrated_temp - 5, 2), round(curr_humid - 10, 2)
 
     def start_log(self, limit=None, Debug=False):
         if limit is not None:
