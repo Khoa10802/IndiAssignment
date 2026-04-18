@@ -4,6 +4,7 @@ from queue import Queue
 import datetime as dt
 from sense_hat import SenseHat, ACTION_PRESSED, ACTION_RELEASED
 from enum import Enum
+from signal import pause
 
 JSON_FILE_NAME = "config.json"
 DB_NAME = "datalog.db"
@@ -152,6 +153,7 @@ class DBLogger:
     _initialized = False
 
     _debug = False
+    _paused = False
 
     def __new__(cls):
         with cls._lock:
@@ -170,6 +172,9 @@ class DBLogger:
                 self._config_reader = ConfigReader()
                 self._configuration = self._config_reader.get_config_values()
                 self._config_reader.close_file()
+
+                self._sense = SenseHat()
+                self._sense.stick.direction_up = self.__pause_and_resume_log
 
                 self._data_display = DataDisplay()
                 self._history = Queue(maxsize=5)
@@ -223,15 +228,15 @@ class DBLogger:
         curr_humid = sense.get_humidity()
         return round(calibrated_temp - 5, 2), round(curr_humid - 10, 2)
 
-    def start_log(self, limit=None, run=True):
+    def start_log(self, limit=None):
         if limit is not None:
             i = 0
-            while i < limit and run:
+            while i < limit and not self._paused:
                 temp, humid = self.__get_data()
                 self.log_data(temp, humid)
                 i += 1
         else:
-            while run:
+            while not self._paused:
                 temp, humid = self.__get_data()
                 self.log_data(temp, humid)
 
@@ -242,6 +247,11 @@ class DBLogger:
     @debug.setter
     def debug(self, value):
         self._debug = bool(value)
+
+    def __pause_and_resume_log(self, event):
+        if event.action == ACTION_PRESSED:
+            self._data_display.toggle_pause()
+            # self._paused = not self._paused
 
     def get_history(self):
         return list(self._history.queue)
@@ -290,6 +300,8 @@ class DataDisplay:
     _lock = threading.Lock()
     _initialized = False
 
+    _paused = False
+
     def __new__(cls):
         with cls._lock:
             if cls._instance is None:
@@ -318,26 +330,27 @@ class DataDisplay:
 
         i = 0
         while i != display_count:
-            self.__write_letter("T", startAt=LETTER_START_INDEX)
-            first_digit = int(temp / 10)
-            self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX, color=TEMP_COLOR[temp_cate])
-            second_digit = temp % 10
-            self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX, color=TEMP_COLOR[temp_cate])
-            sense.set_pixels(self._screen)
+            if not self._paused:
+                self.__write_letter("T", startAt=LETTER_START_INDEX)
+                first_digit = int(temp / 10)
+                self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX, color=TEMP_COLOR[temp_cate])
+                second_digit = temp % 10
+                self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX, color=TEMP_COLOR[temp_cate])
+                sense.set_pixels(self._screen)
 
-            time.sleep(DISPLAY_INTERVAL)
-            sense.clear()
+                time.sleep(DISPLAY_INTERVAL)
+                sense.clear()
 
-            self.__write_letter("H", startAt=LETTER_START_INDEX)
-            first_digit = int(humid / 10)
-            self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX, color=HUMID_COLOR[humid_cate])
-            second_digit = humid % 10
-            self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX, color=HUMID_COLOR[humid_cate])
-            sense.set_pixels(self._screen)
+                self.__write_letter("H", startAt=LETTER_START_INDEX)
+                first_digit = int(humid / 10)
+                self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX, color=HUMID_COLOR[humid_cate])
+                second_digit = humid % 10
+                self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX, color=HUMID_COLOR[humid_cate])
+                sense.set_pixels(self._screen)
 
-            time.sleep(DISPLAY_INTERVAL)
-            sense.clear()
-            i += 2
+                time.sleep(DISPLAY_INTERVAL)
+                sense.clear()
+                i += 2
 
     def __write_letter(self, letter: str, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
         shd = SenseHatCharacter()
@@ -355,7 +368,36 @@ class DataDisplay:
             self._screen[startAt:startAt+4] = number_matrix[i:i+4]
             startAt += 8
 
+    def toggle_pause(self):
+        self._paused = not self._paused
+
+# class SensorInterface:
+#     _run = True
+#     _live_mode = True
+
+#     def __init__(self, Debug=False):
+#         self._sense = SenseHat()
+#         self.dbLogger = DBLogger()
+#         self.dbLogger.debug = Debug
+#         self._debug = Debug
+
+#         self._sense.stick.direction_up = self.__pause_and_resume_log
+
+
+#     def start(self):
+#         while self._run:
+#             self.dbLogger.start_log()
+
+#     def __pause_and_resume_log(self, event):
+#         if event.action == ACTION_PRESSED:
+#             self._run = not self._run
+
+#             print(self._run)
+
+
 if __name__ == "__main__":
-    dbLogger = DBLogger()
-    dbLogger.debug = True
-    dbLogger.start_log(limit=10)
+    # sensor_interface = SensorInterface(Debug=True)
+    # sensor_interface.start()
+    db_logger = DBLogger()
+    db_logger.debug = True
+    db_logger.start_log()
