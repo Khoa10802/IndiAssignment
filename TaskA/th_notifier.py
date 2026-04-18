@@ -27,6 +27,25 @@ class COLOR(Enum):
     BLACK = [0, 0, 0]
     WHITE = [255, 255, 255]
     RED = [255, 0, 0]
+    RED_ORANGE = [255, 51, 51]
+    BALANCED_GREEN = [102, 204, 102]
+    ICE_BLUE = [51, 153, 255]
+    YELLOW_BROWN = [204, 153, 51]
+    GENTLE_BLUE = [102, 153, 204]
+    DEEP_TEAL = [0, 102, 153]
+
+TEMP_COLOR = {
+    "Cold": COLOR.ICE_BLUE,
+    "Comfortable": COLOR.BALANCED_GREEN,
+    "Hot": COLOR.RED_ORANGE
+}
+
+HUMID_COLOR = {
+    "Dry": COLOR.YELLOW_BROWN,
+    "Comfortable": COLOR.GENTLE_BLUE,
+    "Humid": COLOR.DEEP_TEAL
+}
+
 
 class ConfigReader:
     _instance = None
@@ -194,7 +213,7 @@ class DBLogger:
         self._cursor.execute(INSERT_DATA_QUERY, data)
         self._conn.commit()
 
-        self._data_display.display_data(int(temp), int(humid))
+        self._data_display.display_data(int(temp), temp_cate, int(humid), humid_cate)
 
     def __get_data(self):
         sense = SenseHat()
@@ -239,7 +258,7 @@ class SenseHatCharacter:
 
                 self.__class__._initialized = True
 
-    def get_character_matrix(self, char: str, color=COLOR.WHITE) -> list:
+    def get_character_matrix(self, char: str, color=COLOR.WHITE, bgcolor=COLOR.BLACK) -> list:
         if len(char) != 1:
             raise ValueError("Input must be a single character.")
         if char not in self._characters:
@@ -248,7 +267,7 @@ class SenseHatCharacter:
         pixel_char = self._characters[char]
         for index, p in enumerate(pixel_char):
             if p == 0:
-                pixel_char[index] = COLOR.BLACK.value
+                pixel_char[index] = bgcolor.value
             if p == 1:
                 pixel_char[index] = color.value
 
@@ -276,7 +295,7 @@ class DataDisplay():
 
                 self.__class__._initialized = True
 
-    def display_data(self, temp, humid):
+    def display_data(self, temp, temp_cate, humid, humid_cate):
         sense = SenseHat()
         DISPLAY_INTERVAL = 5
         display_count = self._config_interval / DISPLAY_INTERVAL
@@ -289,36 +308,36 @@ class DataDisplay():
         while i != display_count:
             self.__write_letter("T", startAt=LETTER_START_INDEX)
             first_digit = int(temp / 10)
-            self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX)
+            self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX, color=TEMP_COLOR[temp_cate])
             second_digit = temp % 10
-            self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX)
+            self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX, color=TEMP_COLOR[temp_cate])
             sense.set_pixels(self._screen)
 
             time.sleep(DISPLAY_INTERVAL)
-            sense.clear(COLOR.BLACK.value)
+            sense.clear()
 
             self.__write_letter("H", startAt=LETTER_START_INDEX)
             first_digit = int(humid / 10)
-            self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX)
+            self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX, color=HUMID_COLOR[humid_cate])
             second_digit = humid % 10
-            self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX)
+            self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX, color=HUMID_COLOR[humid_cate])
             sense.set_pixels(self._screen)
 
             time.sleep(DISPLAY_INTERVAL)
-            sense.clear(COLOR.BLACK.value)
+            sense.clear()
             i += 2
 
-    def __write_letter(self, letter: str, startAt: int, color=COLOR.RED):
+    def __write_letter(self, letter: str, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
         shd = SenseHatCharacter()
-        letter_matrix = shd.get_character_matrix(letter, color)
+        letter_matrix = shd.get_character_matrix(letter, color, bgcolor)
 
         for i in range(0, 12 - 4 + 1, 4):
             self._screen[startAt:startAt+4] = letter_matrix[i:i+4]
             startAt += 8
 
-    def __write_number(self, number: int, startAt: int, color=COLOR.WHITE):
+    def __write_number(self, number: int, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
         shd = SenseHatCharacter()
-        number_matrix = shd.get_character_matrix(str(number))
+        number_matrix = shd.get_character_matrix(str(number), color, bgcolor)
 
         for i in range(0, 20 - 4 + 1, 4):
             self._screen[startAt:startAt+4] = number_matrix[i:i+4]
