@@ -2,7 +2,7 @@ import json, re, time, threading
 import sqlite3 as lite
 from queue import Queue
 import datetime as dt
-from sense_hat import SenseHat
+from sense_hat import SenseHat, ACTION_PRESSED, ACTION_RELEASED
 from enum import Enum
 
 JSON_FILE_NAME = "config.json"
@@ -151,6 +151,8 @@ class DBLogger:
     _lock = threading.Lock()
     _initialized = False
 
+    _debug = False
+
     def __new__(cls):
         with cls._lock:
             if cls._instance is None:
@@ -170,7 +172,6 @@ class DBLogger:
                 self._config_reader.close_file()
 
                 self._data_display = DataDisplay()
-
                 self._history = Queue(maxsize=5)
 
                 self.__class__._initialized = True
@@ -201,7 +202,7 @@ class DBLogger:
         
         return None
 
-    def log_data(self, temp, humid, Debug=False):
+    def log_data(self, temp, humid):
         if self._history.full(): self._history.get()
 
         temp_cate = self.__categorizer(temp)
@@ -214,7 +215,7 @@ class DBLogger:
         self._conn.commit()
 
         self._data_display.display_data(int(temp), temp_cate, int(humid), humid_cate)
-        print(f"Logged data: {data}") if Debug else None
+        print(f"Logged data: {data}") if self._debug else None
 
     def __get_data(self):
         sense = SenseHat()
@@ -222,15 +223,25 @@ class DBLogger:
         curr_humid = sense.get_humidity()
         return round(calibrated_temp - 5, 2), round(curr_humid - 10, 2)
 
-    def start_log(self, limit=None, Debug=False):
+    def start_log(self, limit=None, run=True):
         if limit is not None:
-            for _ in range(limit):
+            i = 0
+            while i < limit and run:
                 temp, humid = self.__get_data()
-                self.log_data(temp, humid, Debug=Debug)
+                self.log_data(temp, humid)
+                i += 1
         else:
-            while True:
+            while run:
                 temp, humid = self.__get_data()
-                self.log_data(temp, humid, Debug=Debug)
+                self.log_data(temp, humid)
+
+    @property
+    def debug(self):
+        return self._debug
+
+    @debug.setter
+    def debug(self, value):
+        self._debug = bool(value)
 
     def get_history(self):
         return list(self._history.queue)
@@ -274,7 +285,7 @@ class SenseHatCharacter:
 
         return pixel_char
 
-class DataDisplay():
+class DataDisplay:
     _instance = None
     _lock = threading.Lock()
     _initialized = False
@@ -346,4 +357,5 @@ class DataDisplay():
 
 if __name__ == "__main__":
     dbLogger = DBLogger()
-    dbLogger.start_log(limit=10, Debug=True)
+    dbLogger.debug = True
+    dbLogger.start_log(limit=10)
