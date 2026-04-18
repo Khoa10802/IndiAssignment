@@ -201,11 +201,11 @@ class DBLogger:
         
         return None
 
-    def log_data(self, temp, humid):
+    def log_data(self, temp, humid, Debug=False):
         if self._history.full(): self._history.get()
 
         temp_cate = self.__categorizer(temp)
-        humid_cate = self.__categorizer(temp, "humidity")
+        humid_cate = self.__categorizer(humid, "humidity")
         curr_time = dt.datetime.now().strftime("%H:%M:%S")
         
         data = (curr_time, temp, temp_cate, humid, humid_cate)
@@ -214,6 +214,7 @@ class DBLogger:
         self._conn.commit()
 
         self._data_display.display_data(int(temp), temp_cate, int(humid), humid_cate)
+        print(f"Logged data: {data}") if Debug else None
 
     def __get_data(self):
         sense = SenseHat()
@@ -221,15 +222,15 @@ class DBLogger:
         curr_humid = sense.get_humidity()
         return round(calibrated_temp, 2), round(curr_humid, 2)
 
-    def start_log(self, limit=None):
+    def start_log(self, limit=None, Debug=False):
         if limit is not None:
             for _ in range(limit):
                 temp, humid = self.__get_data()
-                self.log_data(temp, humid)
+                self.log_data(temp, humid, Debug=Debug)
         else:
             while True:
                 temp, humid = self.__get_data()
-                self.log_data(temp, humid)
+                self.log_data(temp, humid, Debug=Debug)
 
     def get_history(self):
         return list(self._history.queue)
@@ -345,4 +346,4 @@ class DataDisplay():
 
 if __name__ == "__main__":
     dbLogger = DBLogger()
-    dbLogger.start_log(limit=10)
+    dbLogger.start_log(limit=10, Debug=True)
