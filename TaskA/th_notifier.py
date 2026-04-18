@@ -281,56 +281,49 @@ class DataDisplay():
         DISPLAY_INTERVAL = 5
         display_count = self._config_interval / DISPLAY_INTERVAL
 
-        i = 0
-        while i != display_count:
-            self.__write_letter("T")
-            first_digit = int(temp / 10)
-            second_digit = temp % 10
-            self.__write_numbers(str(first_digit), str(second_digit))
-            sense.set_pixels(self._screen)
-
-            time.sleep(5)
-            sense.clear(COLOR.BLACK.value)
-
-            self.__write_letter("H")
-            first_digit = int(humid / 10)
-            second_digit = humid % 10
-            self.__write_numbers(str(first_digit), str(second_digit))
-            sense.set_pixels(self._screen)
-
-            time.sleep(5)
-            sense.clear(COLOR.BLACK.value)
-            i += 2
-
-    def __write_letter(self, letter: str):
-        shd = SenseHatCharacter()
-        letter_matrix = shd.get_character_matrix(letter, COLOR.RED)
-
         LETTER_START_INDEX = 2
-        l_index = LETTER_START_INDEX
-
-        for i in range(0, 10, 4):
-            self._screen[l_index:l_index+4] = letter_matrix[i:i+4]
-            l_index += 8
-
-    def __write_numbers(self, first: int, second: int):
-        shd = SenseHatCharacter()
-        first_number_matrix = shd.get_character_matrix(str(first))
-        second_number_matrix = shd.get_character_matrix(str(second))
-
         FIRST_NUMBER_START_INDEX = 24
         SECOND_NUMBER_START_INDEX = 28
 
-        fn_index = FIRST_NUMBER_START_INDEX
-        sn_index = SECOND_NUMBER_START_INDEX
+        i = 0
+        while i != display_count:
+            self.__write_letter("T", startAt=LETTER_START_INDEX)
+            first_digit = int(temp / 10)
+            self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX)
+            second_digit = temp % 10
+            self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX)
+            sense.set_pixels(self._screen)
 
-        for i in range(0, 17, 4):
-            self._screen[fn_index:fn_index+4] = first_number_matrix[i:i+4]
-            self._screen[sn_index:sn_index+4] = second_number_matrix[i:i+4]
-            fn_index += 8
-            sn_index += 8
+            time.sleep(DISPLAY_INTERVAL)
+            sense.clear(COLOR.BLACK.value)
+
+            self.__write_letter("H", startAt=LETTER_START_INDEX)
+            first_digit = int(humid / 10)
+            self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX)
+            second_digit = humid % 10
+            self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX)
+            sense.set_pixels(self._screen)
+
+            time.sleep(DISPLAY_INTERVAL)
+            sense.clear(COLOR.BLACK.value)
+            i += 2
+
+    def __write_letter(self, letter: str, startAt: int, color=COLOR.RED):
+        shd = SenseHatCharacter()
+        letter_matrix = shd.get_character_matrix(letter, color)
+
+        for i in range(0, 12 - 4 + 1, 4):
+            self._screen[startAt:startAt+4] = letter_matrix[i:i+4]
+            startAt += 8
+
+    def __write_number(self, number: int, startAt: int, color=COLOR.WHITE):
+        shd = SenseHatCharacter()
+        number_matrix = shd.get_character_matrix(str(number))
+
+        for i in range(0, 20 - 4 + 1, 4):
+            self._screen[startAt:startAt+4] = number_matrix[i:i+4]
+            startAt += 8
 
 if __name__ == "__main__":
-    db_logger = DBLogger()
-    db_logger.start_log(limit=6)
-    db_logger.close_db()
+    dbLogger = DBLogger()
+    dbLogger.start_log(limit=10)
