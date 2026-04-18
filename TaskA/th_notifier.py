@@ -43,7 +43,7 @@ TEMP_COLOR = {
 HUMID_COLOR = {
     "Dry": COLOR.YELLOW_BROWN,
     "Comfortable": COLOR.GENTLE_BLUE,
-    "Humid": COLOR.DEEP_TEAL
+    "Wet": COLOR.DEEP_TEAL
 }
 
 
@@ -88,7 +88,7 @@ class ConfigReader:
 
         thresholds = {
             "temperature": ("cold", "comfortable", "hot"),
-            "humidity": ("dry", "comfortable", "humid")
+            "humidity": ("dry", "comfortable", "wet")
         }
 
         for mtype in ("temperature", "humidity"):
@@ -178,7 +178,7 @@ class DBLogger:
     def __categorizer(self, value, mtype='temperature'):
         thresholds = self._configuration[mtype]
         temp_designation = ('Cold', 'Comfortable', 'Hot')
-        humid_designation = ('Dry', 'Comfortable', 'Humid')
+        humid_designation = ('Dry', 'Comfortable', 'Wet')
 
         designation = temp_designation if mtype == 'temperature' else humid_designation
 

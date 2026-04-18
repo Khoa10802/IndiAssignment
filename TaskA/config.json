@@ -10,7 +10,7 @@
         "thresholds": {
             "dry": "<30",
             "comfortable": "30/60",
-            "humid": ">60"
+            "wet": ">60"
         }
     },
     "interval": 10
