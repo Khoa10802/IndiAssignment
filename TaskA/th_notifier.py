@@ -1,6 +1,6 @@
 import json, re, time, threading
 import sqlite3 as lite
-from queue import Queue
+from collections import deque
 import datetime as dt
 from sense_hat import SenseHat, ACTION_PRESSED, ACTION_RELEASED
 from enum import Enum
@@ -23,6 +23,7 @@ INSERT_DATA_QUERY = f"""INSERT INTO {TABLE_NAME} VALUES(?, ?, ?, ?, ?)"""
 DROP_TABLE_QUERY = f"""DROP TABLE IF EXISTS {TABLE_NAME}"""
 
 SELECT_QUERY = f"""SELECT * FROM {TABLE_NAME}"""
+RETRIEVE_LAST_5_QUERY = f"""SELECT * FROM {TABLE_NAME} ORDER_BY timestamp DESC LIMIT 5"""
 
 class COLOR(Enum):
     BLACK = [0, 0, 0]
@@ -154,6 +155,7 @@ class DBLogger:
 
     _debug = False
     _paused = False
+    _live = True
 
     def __new__(cls):
         with cls._lock:
@@ -175,9 +177,13 @@ class DBLogger:
 
                 self._sense = SenseHat()
                 self._sense.stick.direction_up = self.__pause_and_resume_log
+                self._sense.stick.direction_middle = self.__mode_switch
 
-                self._data_display = DataDisplay()
-                self._history = Queue(maxsize=5)
+                self._screen = [COLOR.BLACK.value] * 64
+
+                self.shd = SenseHatCharacter()
+
+                self._history = deque(maxlen=5)
 
                 self.__class__._initialized = True
 
@@ -207,38 +213,79 @@ class DBLogger:
         
         return None
 
-    def log_data(self, temp, humid):
-        if self._history.full(): self._history.get()
+    def log_data(self):
+        temp, humid = self.__get_data()
 
         temp_cate = self.__categorizer(temp)
         humid_cate = self.__categorizer(humid, "humidity")
         curr_time = dt.datetime.now().strftime("%H:%M:%S")
         
         data = (curr_time, temp, temp_cate, humid, humid_cate)
-        self._history.put(data)
+        self._history.append(data)
         self._cursor.execute(INSERT_DATA_QUERY, data)
         self._conn.commit()
 
-        self._data_display.display_data(int(temp), temp_cate, int(humid), humid_cate)
         print(f"Logged data: {data}") if self._debug else None
+        return data
+
+    def start(self):
+        DISPLAY_INTERVAL = 5
+        HISTORY_DISPLAY_INTERVAL = 2
+        display_count = (self._configuration['interval'] / DISPLAY_INTERVAL) / 2
+
+        while True:
+            if self._live:
+                if not self._paused:
+                    _, temp, temp_cate, humid, humid_cate = self.log_data()
+                    i = 0
+                    while i != display_count:
+                        first_digit = int(temp / 10)
+                        second_digit = int(temp % 10)
+                        self.__write_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
+
+                        time.sleep(DISPLAY_INTERVAL)
+                        if self._paused: break
+
+                        self._sense.clear()
+
+                        first_digit = int(humid / 10)
+                        second_digit = int(humid % 10)
+                        self.__write_screen("H", first_digit, second_digit, color=HUMID_COLOR[humid_cate])
+
+                        time.sleep(DISPLAY_INTERVAL)
+                        if self._paused: break
+
+                        self._sense.clear()
+                        i += 1
+            
+            if not self._live:
+                if len(self._history) == 0: self._sense.show_message("No history!!", scroll_speed=0.2)
+                index = 0
+                while index != len(self._history):
+                    _, temp, temp_cate, humid, humid_cate = self._history[index]
+                    print(temp, temp_cate, humid, humid_cate)
+                    first_digit = int(temp / 10)
+                    second_digit = int(temp % 10)
+                    self.__write_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
+
+                    time.sleep(HISTORY_DISPLAY_INTERVAL)
+
+                    self._sense.clear()
+
+                    first_digit = int(humid / 10)
+                    second_digit = int(humid % 10)
+                    self.__write_screen("H", first_digit, second_digit, color=HUMID_COLOR[humid_cate])
+
+                    time.sleep(HISTORY_DISPLAY_INTERVAL)
+
+                    self._sense.clear()
+                    index += 1
+
 
     def __get_data(self):
-        sense = SenseHat()
-        calibrated_temp = (sense.get_temperature_from_pressure() + sense.get_temperature_from_humidity()) / 2
-        curr_humid = sense.get_humidity()
+        calibrated_temp = (self._sense.get_temperature_from_pressure() + self._sense.get_temperature_from_humidity()) / 2
+        curr_humid = self._sense.get_humidity()
         return round(calibrated_temp - 5, 2), round(curr_humid - 10, 2)
-
-    def start_log(self, limit=None):
-        if limit is not None:
-            i = 0
-            while i < limit and not self._paused:
-                temp, humid = self.__get_data()
-                self.log_data(temp, humid)
-                i += 1
-        else:
-            while not self._paused:
-                temp, humid = self.__get_data()
-                self.log_data(temp, humid)
 
     @property
     def debug(self):
@@ -250,11 +297,35 @@ class DBLogger:
 
     def __pause_and_resume_log(self, event):
         if event.action == ACTION_PRESSED:
-            self._data_display.toggle_pause()
-            # self._paused = not self._paused
+            self._paused = not self._paused
+            print("Logging paused." if self._paused else "Logging resumed.") if self._debug else None
 
-    def get_history(self):
-        return list(self._history.queue)
+    def __mode_switch(self, event):
+        if event.action == ACTION_PRESSED and self._paused:
+            self._live = not self._live
+            print("Switching to live mode." if self._live else "Switching to history mode") if self._debug else None
+
+    def __write_letter(self, letter: str, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
+        letter_matrix = self.shd.get_character_matrix(letter, color, bgcolor)
+        for i in range(0, 12 - 4 + 1, 4):
+            self._screen[startAt:startAt+4] = letter_matrix[i:i+4]
+            startAt += 8
+
+    def __write_number(self, number: int, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
+        number_matrix = self.shd.get_character_matrix(str(number), color, bgcolor)
+        for i in range(0, 20 - 4 + 1, 4):
+            self._screen[startAt:startAt+4] = number_matrix[i:i+4]
+            startAt += 8
+
+    def __write_screen(self, letter: str, fdigit: int, sdigit: int, color, bcolor=COLOR.BLACK):
+        LETTER_START_INDEX = 4
+        FIRST_NUMBER_START_INDEX = 24
+        SECOND_NUMBER_START_INDEX = 28
+
+        self.__write_letter(letter, startAt=LETTER_START_INDEX)
+        self.__write_number(fdigit, startAt=FIRST_NUMBER_START_INDEX, color=color)
+        self.__write_number(sdigit, startAt=SECOND_NUMBER_START_INDEX, color=color)
+        self._sense.set_pixels(self._screen)
 
     def close_db(self):
         if hasattr(self, "_conn") and self._conn:
@@ -295,81 +366,75 @@ class SenseHatCharacter:
 
         return pixel_char
 
-class DataDisplay:
-    _instance = None
-    _lock = threading.Lock()
-    _initialized = False
+# class DataDisplay:
+#     _instance = None
+#     _lock = threading.Lock()
+#     _initialized = False
 
-    _paused = False
+#     def __new__(cls):
+#         with cls._lock:
+#             if cls._instance is None:
+#                 cls._instance = super().__new__(cls)
+#         return cls._instance
 
-    def __new__(cls):
-        with cls._lock:
-            if cls._instance is None:
-                cls._instance = super().__new__(cls)
-        return cls._instance
+#     def __init__(self):
+#         with self.__class__._lock:
+#             if not self.__class__._initialized:
+#                 self._config_reader = ConfigReader()
+#                 self._config_interval = self._config_reader.get_config_interval()
+#                 self._config_reader.close_file()
 
-    def __init__(self):
-        with self.__class__._lock:
-            if not self.__class__._initialized:
-                self._config_reader = ConfigReader()
-                self._config_interval = self._config_reader.get_config_interval()
-                self._config_reader.close_file()
+#                 self._screen = [COLOR.BLACK.value] * 64
 
-                self._screen = [COLOR.BLACK.value] * 64
+#                 self.__class__._initialized = True
 
-                self.__class__._initialized = True
+#     def display_data(self, temp, temp_cate, humid, humid_cate):
+#         sense = SenseHat()
+#         DISPLAY_INTERVAL = 5
+#         display_count = self._config_interval / DISPLAY_INTERVAL
 
-    def display_data(self, temp, temp_cate, humid, humid_cate):
-        sense = SenseHat()
-        DISPLAY_INTERVAL = 5
-        display_count = self._config_interval / DISPLAY_INTERVAL
+#         LETTER_START_INDEX = 2
+#         FIRST_NUMBER_START_INDEX = 24
+#         SECOND_NUMBER_START_INDEX = 28
 
-        LETTER_START_INDEX = 2
-        FIRST_NUMBER_START_INDEX = 24
-        SECOND_NUMBER_START_INDEX = 28
+#         i = 0
+#         while i != display_count:
+#             self.__write_letter("T", startAt=LETTER_START_INDEX)
+#             first_digit = int(temp / 10)
+#             self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX, color=TEMP_COLOR[temp_cate])
+#             second_digit = temp % 10
+#             self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX, color=TEMP_COLOR[temp_cate])
+#             sense.set_pixels(self._screen)
 
-        i = 0
-        while i != display_count:
-            if not self._paused:
-                self.__write_letter("T", startAt=LETTER_START_INDEX)
-                first_digit = int(temp / 10)
-                self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX, color=TEMP_COLOR[temp_cate])
-                second_digit = temp % 10
-                self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX, color=TEMP_COLOR[temp_cate])
-                sense.set_pixels(self._screen)
+#             time.sleep(DISPLAY_INTERVAL)
+#             sense.clear()
 
-                time.sleep(DISPLAY_INTERVAL)
-                sense.clear()
+#             self.__write_letter("H", startAt=LETTER_START_INDEX)
+#             first_digit = int(humid / 10)
+#             self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX, color=HUMID_COLOR[humid_cate])
+#             second_digit = humid % 10
+#             self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX, color=HUMID_COLOR[humid_cate])
+#             sense.set_pixels(self._screen)
 
-                self.__write_letter("H", startAt=LETTER_START_INDEX)
-                first_digit = int(humid / 10)
-                self.__write_number(first_digit, startAt=FIRST_NUMBER_START_INDEX, color=HUMID_COLOR[humid_cate])
-                second_digit = humid % 10
-                self.__write_number(second_digit, startAt=SECOND_NUMBER_START_INDEX, color=HUMID_COLOR[humid_cate])
-                sense.set_pixels(self._screen)
+#             time.sleep(DISPLAY_INTERVAL)
+#             sense.clear()
+#             i += 2
 
-                time.sleep(DISPLAY_INTERVAL)
-                sense.clear()
-                i += 2
+#     def __write_letter(self, letter: str, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
+#         shd = SenseHatCharacter()
+#         letter_matrix = shd.get_character_matrix(letter, color, bgcolor)
 
-    def __write_letter(self, letter: str, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
-        shd = SenseHatCharacter()
-        letter_matrix = shd.get_character_matrix(letter, color, bgcolor)
+#         for i in range(0, 12 - 4 + 1, 4):
+#             self._screen[startAt:startAt+4] = letter_matrix[i:i+4]
+#             startAt += 8
 
-        for i in range(0, 12 - 4 + 1, 4):
-            self._screen[startAt:startAt+4] = letter_matrix[i:i+4]
-            startAt += 8
+#     def __write_number(self, number: int, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
+#         shd = SenseHatCharacter()
+#         number_matrix = shd.get_character_matrix(str(number), color, bgcolor)
 
-    def __write_number(self, number: int, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
-        shd = SenseHatCharacter()
-        number_matrix = shd.get_character_matrix(str(number), color, bgcolor)
-
-        for i in range(0, 20 - 4 + 1, 4):
-            self._screen[startAt:startAt+4] = number_matrix[i:i+4]
-            startAt += 8
-
-    def toggle_pause(self):
-        self._paused = not self._paused
+#         for i in range(0, 20 - 4 + 1, 4):
+#             self._screen[startAt:startAt+4] = number_matrix[i:i+4]
+#             startAt += 8
 
 # class SensorInterface:
 #     _run = True
@@ -400,4 +465,4 @@ if __name__ == "__main__":
     # sensor_interface.start()
     db_logger = DBLogger()
     db_logger.debug = True
-    db_logger.start_log()
+    db_logger.start()
