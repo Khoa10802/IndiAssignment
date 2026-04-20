@@ -357,7 +357,7 @@ class SenseHatCharacter:
         if char not in self._characters:
             raise ValueError(f"Character '{char}' not found in character set.")
 
-        pixel_char = self._characters[char]
+        pixel_char = self._characters[char].copy()
         for index, p in enumerate(pixel_char):
             if p == 0:
                 pixel_char[index] = bgcolor.value
