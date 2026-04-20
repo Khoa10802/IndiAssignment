@@ -50,7 +50,10 @@ HUMID_COLOR = {
 
 
 class ConfigReader:
-    _instance = None
+    """
+    A singleton class responsible for reading and validating the configuration from a JSON file (config.json).
+    """
+
     _lock = threading.Lock()
     _initialized = False
 
@@ -67,6 +70,10 @@ class ConfigReader:
         return cls._instance
 
     def __init__(self):
+        """
+        Initializes the ConfigReader instance by reading the configuration from a JSON file 
+        and validating its structure and values.
+        """
         with self.__class__._lock:
             if not self.__class__._initialized:
                 self._config_file = open(JSON_FILE_NAME, "r")
@@ -78,9 +85,15 @@ class ConfigReader:
                 self.__class__._initialized = True
 
     def get_raw_data(self):
+        """
+        Returns the raw and non-validated configuration data loaded from the JSON file.
+        """
         return self._cdata
 
-    def __validate_structure(self) -> bool:
+    def __validate_structure(self):
+        """
+        Validate the structure of the configuration data.
+        """
         if not isinstance(self._cdata, dict):
             raise ValueError("Incorrect config file format.")
         if len(self._cdata) != 3:
@@ -110,6 +123,9 @@ class ConfigReader:
                 raise ValueError(f"Sub-key 'thresholds' in key '{mtype}' must contain the categories: {thresholds[mtype]}")
 
     def __validate_values(self):
+        """
+        Validate the values, requirements, and formats of the configuration data.
+        """
         value_validation_regex = r'^([<>][+-]?\d+(?:\.\d+)?|[+-]?\d+(?:\.\d+)?/[+-]?\d+(?:\.\d+)?)$'
 
         interval_value = self._cdata['interval']
@@ -129,6 +145,9 @@ class ConfigReader:
                     raise ValueError(f"Invalid threshold value '{value}' in key '{mtype}'. i.e., '<5' or '5/10'.")
 
     def __values_setter(self):
+        """
+        Set the validated configuration values into the _config_data attribute.
+        """
         self.__validate_structure()
         self.__validate_values()
 
@@ -139,16 +158,37 @@ class ConfigReader:
         self._config_data['interval'] = self._cdata['interval']
 
     def get_config_values(self):
+        """
+        Returns the validated configuration data loaded from the JSON file.
+
+        Returns:
+            dict: A dictionary containing temperature, humidity thresholds, and the logging interval. (see above)
+        """
         return self._config_data
 
     def get_config_interval(self):
+        """
+        Returns the logging interval value from the configuration data.
+
+        Returns:
+            int: The logging interval value.
+        """
         return self._config_data['interval']
 
     def close_file(self):
+        """
+        Closes the configuration file if it is open.
+        """
         if hasattr(self, "_config_file") and not self._config_file.closed:
             self._config_file.close()
 
 class DBLogger:
+    """
+    A singleton class responsible for logging temperature and humidity data from the Sense HAT to a SQLite database, 
+    and displaying the data on the Sense HAT's LED matrix. 
+    It also allows pausing/resuming logging 
+    and switching between live and history display modes using the joystick.
+    """
     _instance = None
     _lock = threading.Lock()
     _initialized = False
@@ -164,6 +204,10 @@ class DBLogger:
         return cls._instance
 
     def __init__(self):
+        """
+        Initializes the DBLogger instance by setting up the database connection, reading the configuration,
+        and setting up the joystick event handlers.
+        """
         with self.__class__._lock:
             if not self.__class__._initialized:
                 self._conn = lite.connect(DB_NAME)
@@ -188,6 +232,18 @@ class DBLogger:
                 self.__class__._initialized = True
 
     def __categorizer(self, value, mtype='temperature'):
+        """
+        Categorizing the temperature or humidity value based on the thresholds defined in the configuration.
+
+        Parameters:
+            value (float): The temperature or humidity value to categorize.
+            mtype (str): The type of measurement, either 'temperature' or 'humidity'.
+
+        Returns:
+            str: Cold / Comfortable / Hot for temperature, 
+                 Dry / Comfortable / Wet for humidity, 
+                 or None.
+        """
         thresholds = self._configuration[mtype]
         temp_designation = ('Cold', 'Comfortable', 'Hot')
         humid_designation = ('Dry', 'Comfortable', 'Wet')
@@ -214,6 +270,12 @@ class DBLogger:
         return None
 
     def log_data(self):
+        """
+        Logs the current temperature and humidity data to the database and updates the history of last 5 recorded data.
+
+        Returns:
+            tuple: Comprised of timestamp, temperature, temperature category, humidity, and humidity category.
+        """
         temp, humid = self.__get_data()
 
         temp_cate = self.__categorizer(temp)
@@ -229,6 +291,9 @@ class DBLogger:
         return data
 
     def start(self):
+        """
+        Starts the data logging and display loop.
+        """
         DISPLAY_INTERVAL = 5
         HISTORY_DISPLAY_INTERVAL = 2
         display_count = (self._configuration['interval'] / DISPLAY_INTERVAL) / 2
@@ -283,8 +348,14 @@ class DBLogger:
                     if self._live: break
                     index += 1
 
-
     def __get_data(self):
+        """
+        Retrieves the current temperature and humidity from the Sense Hat, applies calibration, 
+        and returns the calibrated values.
+
+        Returns:
+            tuple: Calibrated temperature and humidity values.
+        """
         calibrated_temp = (self._sense.get_temperature_from_pressure() + self._sense.get_temperature_from_humidity()) / 2
         curr_humid = self._sense.get_humidity()
         return round(calibrated_temp - 5, 2), round(curr_humid, 2)
@@ -298,28 +369,62 @@ class DBLogger:
         self._debug = bool(value)
 
     def __pause_and_resume_log(self, event):
+        """
+        Callback function for the joystick's up direction to pause or resume logging when pressed.
+        """
         if event.action == ACTION_PRESSED:
             self._paused = not self._paused
             print("Logging paused." if self._paused else "Logging resumed.") if self._debug else None
 
     def __mode_switch(self, event):
+        """
+        Callback function for the joystick's middle direction to switch between live and history display modes when pressed.
+        """
         if event.action == ACTION_PRESSED and self._paused:
             self._live = not self._live
             print("Switching to live mode." if self._live else "Switching to history mode") if self._debug else None
 
     def __write_letter(self, letter: str, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
+        """
+        Inserts the pixel matrix of a letter into the _screen.
+
+        Parameters:
+            letter (str): The letter to write (H or T).
+            startAt (int): The starting position on the screen.
+            color (COLOR): The color of the letter.
+            bgcolor (COLOR): The background color.
+        """
         letter_matrix = self.shd.get_character_matrix(letter, color, bgcolor)
         for i in range(0, 12 - 4 + 1, 4):
             self._screen[startAt:startAt+4] = letter_matrix[i:i+4]
             startAt += 8
 
     def __write_number(self, number: int, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
+        """
+        Inserts the pixel matrix of a number into the _screen.
+
+        Parameters:
+            number (int): The number to write (0-9).
+            startAt (int): The starting position on the screen.
+            color (COLOR): The color of the number.
+            bgcolor (COLOR): The background color.
+        """
         number_matrix = self.shd.get_character_matrix(str(number), color, bgcolor)
         for i in range(0, 20 - 4 + 1, 4):
             self._screen[startAt:startAt+4] = number_matrix[i:i+4]
             startAt += 8
 
     def __write_screen(self, letter: str, fdigit: int, sdigit: int, color, bcolor=COLOR.BLACK):
+        """
+        Writes a letter and two numbers to the screen.
+
+        Parameters:
+            letter (str): The letter to write (H or T).
+            fdigit (int): The first digit to write (0-9).
+            sdigit (int): The second digit to write (0-9).
+            color (COLOR): The color of the text.
+            bcolor (COLOR): The background color.
+        """
         LETTER_START_INDEX = 4
         FIRST_NUMBER_START_INDEX = 24
         SECOND_NUMBER_START_INDEX = 28
@@ -330,10 +435,17 @@ class DBLogger:
         self._sense.set_pixels(self._screen)
 
     def close_db(self):
+        """
+        Closed the database connection if it is open.
+        """
         if hasattr(self, "_conn") and self._conn:
             self._conn.close()
 
 class SenseHatCharacter:
+    """
+    A singleton class responsible for loading character pixel data from a JSON file (lowres_characters.json) 
+    and providing methods to retrieve the pixel matrix for a given character with specified colors.
+    """
     _instance = None
     _lock = threading.Lock()
     _initialized = False
@@ -345,6 +457,9 @@ class SenseHatCharacter:
         return cls._instance
 
     def __init__(self):
+        """
+        Initializes the SenseHatCharacter instance by loading the character pixel data from JSON file and storing it in memory.
+        """
         with self.__class__._lock:
             if not self.__class__._initialized:
                 self._characters_file = open(CHARACTERS_JSON, "r")
@@ -354,6 +469,17 @@ class SenseHatCharacter:
                 self.__class__._initialized = True
 
     def get_character_matrix(self, char: str, color=COLOR.WHITE, bgcolor=COLOR.BLACK) -> list:
+        """
+        Retrieves the pixel matrix for a given character.
+
+        Parameters:
+            char (str): The character to retrieve the pixel matrix for (H, T, or digits 0-9).
+            color (COLOR): The color to use for the character pixels.
+            bgcolor (COLOR): The background color to use for the character pixels.
+
+        Returns:
+            list: A list of pixel values representing the input character.
+        """
         if len(char) != 1:
             raise ValueError("Input must be a single character.")
         if char not in self._characters:
