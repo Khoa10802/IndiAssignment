@@ -168,7 +168,7 @@ class DBLogger:
             if not self.__class__._initialized:
                 self._conn = lite.connect(DB_NAME)
                 self._cursor = self._conn.cursor()
-                self._cursor.execute(DROP_TABLE_QUERY)
+                # self._cursor.execute(DROP_TABLE_QUERY)
                 self._cursor.execute(CREATE_TABLE_QUERY)
 
                 self._config_reader = ConfigReader()
@@ -287,7 +287,7 @@ class DBLogger:
     def __get_data(self):
         calibrated_temp = (self._sense.get_temperature_from_pressure() + self._sense.get_temperature_from_humidity()) / 2
         curr_humid = self._sense.get_humidity()
-        return round(calibrated_temp - 5, 2), round(curr_humid - 10, 2)
+        return round(calibrated_temp - 5, 2), round(curr_humid, 2)
 
     @property
     def debug(self):
