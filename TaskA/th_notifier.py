@@ -271,6 +271,7 @@ class DBLogger:
                     time.sleep(HISTORY_DISPLAY_INTERVAL)
 
                     self._sense.clear()
+                    if self._live: break
 
                     first_digit = int(humid / 10)
                     second_digit = int(humid % 10)
@@ -279,6 +280,7 @@ class DBLogger:
                     time.sleep(HISTORY_DISPLAY_INTERVAL)
 
                     self._sense.clear()
+                    if self._live: break
                     index += 1
 
 
