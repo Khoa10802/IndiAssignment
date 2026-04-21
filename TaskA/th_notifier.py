@@ -309,6 +309,8 @@ class DBLogger:
                     _, temp, temp_cate, humid, humid_cate = self.log_data()
                     i = 0
                     while i != display_count:
+                        self.__mode_indicator()
+
                         first_digit = int(temp / 10)
                         second_digit = int(temp % 10)
                         self.__write_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
@@ -332,6 +334,7 @@ class DBLogger:
                 if len(self._history) == 0: self._sense.show_message("No history!!", scroll_speed=0.2)
                 index = 0
                 while index != len(self._history):
+                    self.__mode_indicator()
                     _, temp, temp_cate, humid, humid_cate = self._history[index]
                     print(temp, temp_cate, humid, humid_cate)
                     first_digit = int(temp / 10)
@@ -389,6 +392,9 @@ class DBLogger:
             self._live = not self._live
             print("Switching to live mode." if self._live else "Switching to history mode") if self._debug else None
 
+    def __mode_indicator(self):
+        self._screen[10] = COLOR.VIVID_PURPLE.value if self._live else COLOR.DIM_GRAY.value
+        
     def __write_letter(self, letter: str, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
         """
         Inserts the pixel matrix of a letter into the _screen.
