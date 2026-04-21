@@ -217,7 +217,7 @@ class DBLogger:
             if not self.__class__._initialized:
                 self._conn = lite.connect(DB_NAME)
                 self._cursor = self._conn.cursor()
-                # self._cursor.execute(DROP_TABLE_QUERY)
+                self._cursor.execute(DROP_TABLE_QUERY) if DATABASE_RESET else None
                 self._cursor.execute(CREATE_TABLE_QUERY)
 
                 self._config_reader = ConfigReader()
@@ -447,6 +447,7 @@ class DBLogger:
             self._conn.close()
 
 if __name__ == "__main__":
+    DATABASE_RESET = True
     db_logger = DBLogger()
     db_logger.debug = True
     db_logger.start()
