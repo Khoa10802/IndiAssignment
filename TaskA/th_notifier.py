@@ -39,6 +39,8 @@ class COLOR(Enum):
     YELLOW_BROWN = [204, 153, 51]
     GENTLE_BLUE = [102, 153, 204]
     DEEP_TEAL = [0, 102, 153]
+    VIVID_PURPLE = [204, 102, 255]
+    DIM_GRAY = [80, 80, 80]
 
 TEMP_COLOR = {
     "Cold": COLOR.ICE_BLUE,
@@ -339,7 +341,7 @@ class DBLogger:
                 while index != len(self._history):
                     self.__mode_indicator()
                     _, temp, temp_cate, humid, humid_cate = self._history[index]
-                    print(temp, temp_cate, humid, humid_cate)
+                    print(temp, temp_cate, humid, humid_cate) if self._debug else None
                     first_digit = int(temp / 10)
                     second_digit = int(temp % 10)
                     self.__write_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
