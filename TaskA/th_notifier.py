@@ -331,7 +331,10 @@ class DBLogger:
                         i += 1
             
             if not self._live:
-                if len(self._history) == 0: self._sense.show_message("No history!!", scroll_speed=0.2)
+                if len(self._history) == 0: 
+                    self.__draw_cross(color=COLOR.RED)
+                    self._sense.set_pixels(self._screen)
+                    self._screen = [COLOR.BLACK.value] * 64
                 index = 0
                 while index != len(self._history):
                     self.__mode_indicator()
@@ -394,7 +397,24 @@ class DBLogger:
 
     def __mode_indicator(self):
         self._screen[10] = COLOR.VIVID_PURPLE.value if self._live else COLOR.DIM_GRAY.value
-        
+
+    def __draw_cross(self, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
+        X = color.value
+        O = bgcolor.value
+
+        cross = [
+            O, O, O, O, O, O, O, O,
+            O, X, O, O, O, X, O, O,
+            O, O, X, O, X, O, O, O,
+            O, O, O, X, O, O, O, O,
+            O, O, X, O, X, O, O, O,
+            O, X, O, O, O, X, O, O,
+            O, O, O, O, O, O, O, O,
+            O, O, O, O, O, O, O, O
+        ]
+
+        self._screen = cross
+
     def __write_letter(self, letter: str, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
         """
         Inserts the pixel matrix of a letter into the _screen.
