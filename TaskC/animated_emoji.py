@@ -8,6 +8,10 @@ class COLOR(Enum):
     BLACK = [0, 0, 0]
     WHITE = [255, 255, 255]
     RED = [255, 0, 0]
+    GREEN = [0, 255, 0]
+    BLUE = [0, 0, 255]
+    YELLOW = [255, 255, 0]
+    MAGENTA = [255, 0, 255]
 
 class AnimatedEmoji:
     _instance = None
@@ -16,7 +20,7 @@ class AnimatedEmoji:
 
     _debug = False
     _emoji_name = ("smile", "wink", "suprise", "death", "crying")
-    _emoji_colors = (COLOR.WHITE, COLOR.WHITE, COLOR.WHITE, COLOR.WHITE, COLOR.WHITE)
+    _emoji_colors = (COLOR.GREEN, COLOR.BLUE, COLOR.YELLOW, COLOR.MAGENTA, COLOR.RED)
     _current_emoji_index = 0
     _frame_one = True
 
@@ -114,6 +118,5 @@ class AnimatedEmoji:
 if __name__ == "__main__":
     ae = AnimatedEmoji()
     ae.debug = True
-    ae.emoji_colors = (COLOR.RED, COLOR.RED, COLOR.WHITE, COLOR.RED, COLOR.WHITE)
     ae.start()
             
