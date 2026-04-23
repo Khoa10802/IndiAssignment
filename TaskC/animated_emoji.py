@@ -8,10 +8,18 @@ class COLOR(Enum):
     BLACK = [0, 0, 0]
     WHITE = [255, 255, 255]
     RED = [255, 0, 0]
-    GREEN = [0, 255, 0]
     BLUE = [0, 0, 255]
     YELLOW = [255, 255, 0]
-    MAGENTA = [255, 0, 255]
+    LIGHT_BLUE = [135, 206, 235]
+
+color_index = {
+    0: COLOR.BLACK,
+    1: COLOR.WHITE,
+    2: COLOR.RED,
+    3: COLOR.BLUE,
+    4: COLOR.YELLOW,
+    5: COLOR.LIGHT_BLUE
+}
 
 class AnimatedEmoji:
     _instance = None
@@ -19,8 +27,6 @@ class AnimatedEmoji:
     _initialized = False
 
     _debug = False
-    _emoji_name = ("smile", "wink", "suprise", "death", "crying")
-    _emoji_colors = (COLOR.GREEN, COLOR.BLUE, COLOR.YELLOW, COLOR.MAGENTA, COLOR.RED)
     _current_emoji_index = 0
     _frame_one = True
 
@@ -69,12 +75,7 @@ class AnimatedEmoji:
         for i, name in enumerate(self._emoji_names):
             for frame in emoji[name]:
                 for index, pixel in enumerate(frame):
-                    if pixel == 1:
-                        frame[index] = self._emoji_colors[i].value
-                    elif pixel == 0:
-                        frame[index] = COLOR.BLACK.value
-                    elif pixel != COLOR.BLACK.value:
-                        frame[index] = self._emoji_colors[i].value
+                    frame[index] = color_index[pixel].value
 
     def __switch_left(self, event):
         if event.action == ACTION_PRESSED:
@@ -97,19 +98,6 @@ class AnimatedEmoji:
     @debug.setter
     def debug(self, value):
         self._debug = bool(value)
-
-    @property
-    def emoji_colors(self):
-        return self._emoji_colors
-
-    @emoji_colors.setter
-    def emoji_colors(self, colors):
-        if len(colors) != 5:
-            raise ValueError("Colors must be set for all 5 emojis")
-        if not isinstance(colors, (list, tuple)):
-            raise ValueError("Colors must be a list or tuple")
-        self._emoji_colors = colors
-        self.__set_color()
 
     def close_file(self):
         if hasattr(self, "_emoji_file") and not self._emoji_file.closed:
