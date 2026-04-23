@@ -9,7 +9,7 @@ class COLOR(Enum):
     WHITE = [255, 255, 255]
     RED = [255, 0, 0]
     BLUE = [0, 0, 255]
-    YELLOW = [255, 255, 0]
+    LIGHT_YELLOW = [255, 255, 224]
     LIGHT_BLUE = [135, 206, 235]
 
 color_index = {
@@ -17,7 +17,7 @@ color_index = {
     1: COLOR.WHITE,
     2: COLOR.RED,
     3: COLOR.BLUE,
-    4: COLOR.YELLOW,
+    4: COLOR.LIGHT_YELLOW,
     5: COLOR.LIGHT_BLUE
 }
 
