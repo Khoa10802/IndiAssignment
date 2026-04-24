@@ -99,6 +99,9 @@ class MPLPlotter(Plotter):
         ax.scatter(self._data['timestamp'], self._data['temperature'], color='r')
         ax.scatter(self._data['timestamp'], self._data['humidity'], color='b')
 
+        plt.xlabel('Time')
+        plt.ylabel('Temperature (℃) / Humidity (%)')
+        plt.title('Temperature and Humidity over Time')
         plt.show()
         fig.savefig("scatter-data-mpl.png") if self._png_save else None
 
@@ -115,6 +118,8 @@ class MPLPlotter(Plotter):
         ax1.pie(temp_values, labels=self._temp_labels)
         ax2.pie(humid_values, labels=self._humid_labels)
 
+        ax1.set_title('Temperature')
+        ax2.set_title('Humidity')
         plt.show()
         fig.savefig("pie-data-mpl.png") if self._png_save else None
 
@@ -136,4 +141,4 @@ class PlotterFactory:
 
 if __name__ == '__main__':
     plot = PlotterFactory()
-    plot.create_graph("Matplotlib", "scatter", save_png=True, randomize=True)
+    plot.create_graph("Matplotlib", "pie", save_png=True, randomize=True)
