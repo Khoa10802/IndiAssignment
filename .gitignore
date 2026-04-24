@@ -1,3 +1,4 @@
 datalog.db
 __pycache__
 *.png
+.venv
