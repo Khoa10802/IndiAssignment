@@ -2,8 +2,8 @@
     "temperature": {
         "thresholds": {
             "cold": "<15",
-            "comfortable": "15/28",
-            "hot": ">28"
+            "comfortable": "15/29",
+            "hot": ">29"
         }
     },
     "humidity": {
