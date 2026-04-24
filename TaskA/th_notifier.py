@@ -4,7 +4,6 @@ from collections import deque
 import datetime as dt
 from sense_hat import SenseHat, ACTION_PRESSED, ACTION_RELEASED
 from enum import Enum
-from signal import pause
 
 sys.path.insert(0, "../Helper")
 
