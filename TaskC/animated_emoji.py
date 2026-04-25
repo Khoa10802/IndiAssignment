@@ -51,10 +51,34 @@ class AnimatedEmoji:
                 self._sense.stick.direction_left = self.__switch_left
                 self._sense.stick.direction_right = self.__switch_right
 
+                self._allow_shaking = True
+
                 self.__class__._initialized = True
 
     def start(self):
+        i = 0
         while True:
+            if not self._allow_shaking:
+                i += 1
+                if i == 3:
+                    self._allow_shaking = True
+                    i = 0
+                
+            acceleration = self._sense.get_accelerometer_raw()
+            x = abs(acceleration['x'])
+            y = abs(acceleration['y'])
+            z = abs(acceleration['z'])
+
+            if self._allow_shaking:
+                if x > 1.5 or y > 1.5 or z > 1.3:
+                    if self._current_emoji_index == 4:
+                        self._current_emoji_index = 0
+                    else: 
+                        self._current_emoji_index += 1
+                    print("Move to next Emoji") if self._debug else None
+                    self._allow_shaking = False
+                    continue
+
             self.__switch_frame()
 
     def get_emoji_names(self):
@@ -62,7 +86,6 @@ class AnimatedEmoji:
 
     def __switch_frame(self):
         self._sense.clear()
-        # print(self._emoji.get(self._emoji_names[self._current_emoji_index])[int(self._frame_one)])
         self._sense.set_pixels(self._emoji.get(self._emoji_names[self._current_emoji_index])[int(self._frame_one)])
 
         time.sleep(1)
