@@ -28,6 +28,7 @@ class MyCalculator:
         self._screen = [COLOR.BLACK.value] * 64
 
         self._history = deque(maxlen=3)
+        self._allow_shaking = True
 
         self._debug = Debug
 
@@ -36,7 +37,28 @@ class MyCalculator:
         DOUBLE_DIGIT_1ST_POSITION = 16
         DOUBLE_DIGIT_2ND_POSITION = 20
 
+        i = 0
         while True:
+            if not self._allow_shaking:
+                i += 1
+                if i == 50:
+                    self._allow_shaking = True
+                    i = 0
+
+            acceleration = self._sense.get_accelerometer_raw()
+            x = abs(acceleration['x'])
+            y = abs(acceleration['y'])
+            z = abs(acceleration['z'])
+
+            if self._allow_shaking:
+                if x > 1.5 or y > 1.5 or z > 1.3:
+                    if len(self._history) != 0:
+                        self.x = self._history.pop()
+                        self._screen = [COLOR.BLACK.value] * 64
+                        self._sense.clear()
+                        print("Reversed to last value") if self._debug else None
+                        self._allow_shaking = False
+
             if self.x < 10:
                 self.__write_number(self.x, startAt=SINGLE_DIGIT_POSTION)
                 self._sense.set_pixels(self._screen)
