@@ -313,32 +313,42 @@ class DBLogger:
         display_count = (self._configuration['interval'] / DISPLAY_INTERVAL) / 2
 
         while True:
+            # LIVE MODE
             if self._live:
+                # PAUSED/UNPAUSED
                 if not self._paused:
+                    # get data
                     _, temp, temp_cate, humid, humid_cate = self.log_data()
                     i = 0
                     while i != display_count:
                         self.__mode_indicator()
 
+                        # write data to screen
                         first_digit = int(temp / 10)
                         second_digit = int(temp % 10)
                         self.__write_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
 
                         time.sleep(DISPLAY_INTERVAL)
+
+                        # check if paused
                         if self._paused: break
 
                         self._sense.clear()
 
+                        # write data to screen
                         first_digit = int(humid / 10)
                         second_digit = int(humid % 10)
                         self.__write_screen("H", first_digit, second_digit, color=HUMID_COLOR[humid_cate])
 
                         time.sleep(DISPLAY_INTERVAL)
+
+                        # check if paused
                         if self._paused: break
 
                         self._sense.clear()
                         i += 1
             
+            # HISTORY MODE
             if not self._live:
                 if len(self._history) == 0: 
                     self.__draw_cross(color=COLOR.RED)
@@ -349,6 +359,8 @@ class DBLogger:
                     self.__mode_indicator()
                     _, temp, temp_cate, humid, humid_cate = self._history[index]
                     print(temp, temp_cate, humid, humid_cate) if self._debug else None
+
+                    # write data to screen
                     first_digit = int(temp / 10)
                     second_digit = int(temp % 10)
                     self.__write_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
@@ -356,8 +368,11 @@ class DBLogger:
                     time.sleep(HISTORY_DISPLAY_INTERVAL)
 
                     self._sense.clear()
+
+                    # check if live mode
                     if self._live: break
 
+                    # write data to screen
                     first_digit = int(humid / 10)
                     second_digit = int(humid % 10)
                     self.__write_screen("H", first_digit, second_digit, color=HUMID_COLOR[humid_cate])
@@ -365,6 +380,8 @@ class DBLogger:
                     time.sleep(HISTORY_DISPLAY_INTERVAL)
 
                     self._sense.clear()
+
+                    # check if live mode
                     if self._live: break
                     index += 1
 
@@ -376,6 +393,7 @@ class DBLogger:
         Returns:
             tuple: Calibrated temperature and humidity values.
         """
+        # apply calibration
         calibrated_temp = (self._sense.get_temperature_from_pressure() + self._sense.get_temperature_from_humidity()) / 2
         curr_humid = self._sense.get_humidity()
         return round(calibrated_temp - 5, 2), round(curr_humid, 2)
