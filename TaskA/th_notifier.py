@@ -209,11 +209,10 @@ class DBLogger:
     It also allows pausing/resuming logging 
     and switching between live and history display modes using the joystick.
     """
-    _debug = False
     _paused = False
     _live = True
 
-    def __init__(self):
+    def __init__(self, Debug=False, DBReset=False):
         """
         Initializes the DBLogger instance by setting up the database connection, reading the configuration,
         and setting up the joystick event handlers.
@@ -222,7 +221,7 @@ class DBLogger:
         self._conn = lite.connect(DB_NAME)
         self._cursor = self._conn.cursor()
 
-        self._cursor.execute(DROP_TABLE_QUERY) if DATABASE_RESET else None
+        self._cursor.execute(DROP_TABLE_QUERY) if DBReset else None
         # create table
         self._cursor.execute(CREATE_TABLE_QUERY)
 
@@ -241,6 +240,8 @@ class DBLogger:
         self._shc = character.SenseHatCharacter()
 
         self._history = deque(maxlen=5)
+
+        self._debug = Debug
 
     def __categorizer(self, value, mtype='temperature'):
         """
@@ -419,14 +420,6 @@ class DBLogger:
         curr_humid = self._sense.get_humidity()
         return round(calibrated_temp - 5, 2), round(curr_humid, 2)
 
-    @property
-    def debug(self):
-        return self._debug
-
-    @debug.setter
-    def debug(self, value):
-        self._debug = bool(value)
-
     def __pause_and_resume_log(self, event):
         """
         Callback function for the joystick's up direction to pause or resume logging when pressed.
@@ -580,7 +573,5 @@ class DBLogger:
             self._conn.close()
 
 if __name__ == "__main__":
-    DATABASE_RESET = True
-    db_logger = DBLogger()
-    db_logger.debug = True
+    db_logger = DBLogger(Debug=True, DBReset=True)
     db_logger.start()
