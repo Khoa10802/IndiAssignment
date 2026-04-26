@@ -67,14 +67,13 @@ class Plotter(ABC):
 
 class PlotlyPlotter(Plotter):
     def scatter_plot(self):
-        fig = ps.make_subplots(shared_yaxes=True, x_title='Time')
+        fig = ps.make_subplots(shared_xaxes=True, x_title='Time')
 
         self._Plotter__randomize_value() if self._randomize_data else None
         fig.add_scatter(x=self._data['timestamp'], y=self._data['temperature'], name='Temperature')
         fig.add_scatter(x=self._data['timestamp'], y=self._data['humidity'], name='Humidity')
 
         fig.show()
-        fig.write_image("scatter-data-plotly.png") if self._png_save else None
         
     def pie_plot(self):
         fig = ps.make_subplots(shared_yaxes=True, rows=1, cols=2, column_titles=['Temperature', 'Humidity'], specs=[[{'type': 'domain'}, {'type': 'domain'}]])
@@ -89,7 +88,6 @@ class PlotlyPlotter(Plotter):
         fig.add_pie(values=humid_values, labels=self._humid_labels, row=1, col=2)
 
         fig.show()
-        fig.write_image("pie-data-plotly.png") if self._png_save else None
 
 class MPLPlotter(Plotter):
     def scatter_plot(self):
