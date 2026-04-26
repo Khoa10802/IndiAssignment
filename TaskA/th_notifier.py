@@ -79,11 +79,13 @@ class ConfigReader:
         """
         with self.__class__._lock:
             if not self.__class__._initialized:
+                # open config
                 self._config_file = open(JSON_FILE_NAME, "r")
+                # store config
                 self._cdata = json.load(self._config_file)
-
+                #close config
                 self.close_file()
-
+                # assign thresholds to dictionary attribute
                 self.__values_setter()
                 self.__class__._initialized = True
 
@@ -97,10 +99,13 @@ class ConfigReader:
         """
         Validate the structure of the configuration data.
         """
+        # type check
         if not isinstance(self._cdata, dict):
             raise ValueError("Incorrect config file format.")
+        # check the numbers of keywords
         if len(self._cdata) != 3:
             raise ValueError("Config file must contain exactly three keys: 'temperature', 'humidity', and 'interval'.")
+        # check presents of keywords
         if 'temperature' not in self._cdata or 'humidity' not in self._cdata or 'interval' not in self._cdata:
             raise ValueError("Config file must contain keys 'temperature', 'humidity', and 'interval'.")
 
@@ -110,18 +115,23 @@ class ConfigReader:
         }
 
         for mtype in ("temperature", "humidity"):
+            # type check
             if not isinstance(self._cdata[mtype], dict):
                 raise ValueError(f"Incorrect format for key '{mtype}'.")
+            # check the numbers of keywords
             if len(self._cdata[mtype]) != 1:
                 raise ValueError(f"Key '{mtype}' must contain exactly one sub-key: 'thresholds'.")
+            # check presents of keywords
             if "thresholds" not in self._cdata[mtype]:
                 raise ValueError(f"Key '{mtype}' must contain the 'thresholds' sub-key.")
 
+            # type check
             if not isinstance(self._cdata[mtype]['thresholds'], dict):
                 raise ValueError(f"Incorrect format for sub-key 'thresholds' in key '{mtype}'.")
+            # check the numbers of keywords
             if len(self._cdata[mtype]['thresholds']) != 3:
                 raise ValueError(f"Sub-key 'thresholds' in key '{mtype}' must contain exactly three categories: {thresholds[mtype]}.")
-
+            # check presents of keywords
             if thresholds[mtype][0] not in self._cdata[mtype]['thresholds'] or thresholds[mtype][1] not in self._cdata[mtype]['thresholds'] or thresholds[mtype][2] not in self._cdata[mtype]['thresholds']:
                 raise ValueError(f"Sub-key 'thresholds' in key '{mtype}' must contain the categories: {thresholds[mtype]}")
 
@@ -132,18 +142,23 @@ class ConfigReader:
         value_validation_regex = r'^([<>][+-]?\d+(?:\.\d+)?|[+-]?\d+(?:\.\d+)?/[+-]?\d+(?:\.\d+)?)$'
 
         interval_value = self._cdata['interval']
+        # type check
         if not isinstance(interval_value, int):
             raise ValueError("Invalid data type for 'interval'. Must be an integer.")
+        # condition check
         if interval_value <= 0:
             raise ValueError("'interval' value must be a positive integer")
+        # condition check
         if (interval_value % 10) != 0:
             raise ValueError("'interval' value must be a multiple of 10")
 
         for mtype in ("temperature", "humidity"):
             threshold_values = self._cdata[mtype]['thresholds'].values()
             for value in threshold_values:
+                # type check
                 if not isinstance(value, str):
                     raise ValueError(f"Invalid data type in key '{mtype}'. Must be a string. i.e., '<5' or '5/10'")
+                # regex matching
                 if not re.match(value_validation_regex, value):
                     raise ValueError(f"Invalid threshold value '{value}' in key '{mtype}'. i.e., '<5' or '5/10'.")
 
@@ -151,9 +166,11 @@ class ConfigReader:
         """
         Set the validated configuration values into the _config_data attribute.
         """
+        # call validation methods
         self.__validate_structure()
         self.__validate_values()
 
+        # assign thresholds to dictionary atrribute
         for mtype in ("temperature", "humidity"):
             threshholds = self._cdata[mtype]['thresholds'].values()
             self._config_data[mtype] = tuple(threshholds)
@@ -187,52 +204,43 @@ class ConfigReader:
 
 class DBLogger:
     """
-    A singleton class responsible for logging temperature and humidity data from the Sense HAT to a SQLite database, 
+    A class responsible for logging temperature and humidity data from the Sense HAT to a SQLite database, 
     and displaying the data on the Sense HAT's LED matrix. 
     It also allows pausing/resuming logging 
     and switching between live and history display modes using the joystick.
     """
-    _instance = None
-    _lock = threading.Lock()
-    _initialized = False
-
     _debug = False
     _paused = False
     _live = True
-
-    def __new__(cls):
-        with cls._lock:
-            if cls._instance is None:
-                cls._instance = super().__new__(cls)
-        return cls._instance
 
     def __init__(self):
         """
         Initializes the DBLogger instance by setting up the database connection, reading the configuration,
         and setting up the joystick event handlers.
         """
-        with self.__class__._lock:
-            if not self.__class__._initialized:
-                self._conn = lite.connect(DB_NAME)
-                self._cursor = self._conn.cursor()
-                self._cursor.execute(DROP_TABLE_QUERY) if DATABASE_RESET else None
-                self._cursor.execute(CREATE_TABLE_QUERY)
+        # accessing database
+        self._conn = lite.connect(DB_NAME)
+        self._cursor = self._conn.cursor()
 
-                self._config_reader = ConfigReader()
-                self._configuration = self._config_reader.get_config_values()
-                self._config_reader.close_file()
+        self._cursor.execute(DROP_TABLE_QUERY) if DATABASE_RESET else None
+        # create table
+        self._cursor.execute(CREATE_TABLE_QUERY)
 
-                self._sense = SenseHat()
-                self._sense.stick.direction_up = self.__pause_and_resume_log
-                self._sense.stick.direction_middle = self.__mode_switch
+        # get config values
+        self._config_reader = ConfigReader()
+        self._configuration = self._config_reader.get_config_values()
+        self._config_reader.close_file()
 
-                self._screen = [COLOR.BLACK.value] * 64
+        self._sense = SenseHat()
+        # assign sense hat behaviors
+        self._sense.stick.direction_up = self.__pause_and_resume_log
+        self._sense.stick.direction_middle = self.__mode_switch
 
-                self._shc = character.SenseHatCharacter()
+        self._screen = [COLOR.BLACK.value] * 64
 
-                self._history = deque(maxlen=5)
+        self._shc = character.SenseHatCharacter()
 
-                self.__class__._initialized = True
+        self._history = deque(maxlen=5)
 
     def __categorizer(self, value, mtype='temperature'):
         """
@@ -279,12 +287,15 @@ class DBLogger:
         Returns:
             tuple: Comprised of timestamp, temperature, temperature category, humidity, and humidity category.
         """
+        # get sensor data
         temp, humid = self.__get_data()
 
+        # categorize temperature and humidity
         temp_cate = self.__categorizer(temp)
         humid_cate = self.__categorizer(humid, "humidity")
         curr_time = dt.datetime.now().strftime("%H:%M:%S")
         
+        # insert data into table and history queue
         data = (curr_time, temp, temp_cate, humid, humid_cate)
         self._history.append(data)
         self._cursor.execute(INSERT_DATA_QUERY, data)
