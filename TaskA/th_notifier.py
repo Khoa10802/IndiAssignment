@@ -342,9 +342,9 @@ class DBLogger:
                         self._sense.clear()
 
                         if humid < 0:
-                            self.__write_negative_screen("T", int(humid), color=HUMID_COLOR[humid_cate])
+                            self.__write_negative_screen("H", int(humid), color=HUMID_COLOR[humid_cate])
                         elif humid < 10 and humid >= 0:
-                            self.__write_1digit_screen("T", int(humid), color=HUMID_COLOR[humid_cate])
+                            self.__write_1digit_screen("H", int(humid), color=HUMID_COLOR[humid_cate])
                         else:
                             # write data to screen
                             first_digit = int(humid / 10)
@@ -379,7 +379,7 @@ class DBLogger:
                     else:
                         first_digit = int(temp / 10)
                         second_digit = int(temp % 10)
-                        self.__write_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
+                        self.__write_2digit_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
 
                     time.sleep(HISTORY_DISPLAY_INTERVAL)
 
@@ -390,13 +390,13 @@ class DBLogger:
 
                     # write data to screen
                     if humid < 0:
-                        self.__write_negative_screen("T", int(humid), color=HUMID_COLOR[humid_cate])
+                        self.__write_negative_screen("H", int(humid), color=HUMID_COLOR[humid_cate])
                     elif humid < 10 and humid >= 0:
-                        self.__write_1digit_screen("T", int(humid), color=HUMID_COLOR[humid_cate])
+                        self.__write_1digit_screen("H", int(humid), color=HUMID_COLOR[humid_cate])
                     else:
                         first_digit = int(humid / 10)
                         second_digit = int(humid % 10)
-                        self.__write_screen("H", first_digit, second_digit, color=HUMID_COLOR[humid_cate])
+                        self.__write_2digit_screen("H", first_digit, second_digit, color=HUMID_COLOR[humid_cate])
 
                     time.sleep(HISTORY_DISPLAY_INTERVAL)
 
