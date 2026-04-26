@@ -1,0 +1,95 @@
+1.	With the data that you have in the database, what kind of data visualization graph should be used? 
+	(Scatter plots, Bar charts and Histograms, Line plots, Pie charts, etc.)
+	
+	The database contains many types of data, namely time (Timestamp), numerical 
+	(Temperature and Humidity), and categorical (TemperatureCate and HumidityCate). With 
+	these data types, we can use all charts mentioned in the question, when considering the quirks 
+	of each graph. For example, scatter and line plots with their 2 axes are suitable for 
+	representing change of temperature over a period. Additionally, bar and pie charts can show 
+	the composition of categories within a day, or histogram to show the distribution of such 
+	categories.
+	
+2.	What should be represented in the above graph? Why did you make that decision?
+
+	In this task, we focused on 2 types of graphs, which we believe best utilize all data within our 
+	database. Firstly, a scatter plot with x-axes for time and y-axes for temperature/humidity. 
+	Secondly, a side-by-side pie chart combination to represent the number of recorded 
+	temperature and humidity categories. Another reason for this decision would be practicality. 
+	By putting temperature and humidity values together with timestamp, we can observe the 
+	change of these data over time. As a result, we will be able to determine the trend and 
+	behavior of the weather. As for the pie charts, when tally up the number of categories, we are 
+	offered a better insight into the data. Additionally, when putting these pie charts on a timeline, 
+	a trend can also be revealed.
+	
+3.	Python supports numerous data visualization libraries. Which two libraries did you narrow it down to?
+
+	When searching for Python data visualization libraries, we would come across 4 repeated 
+	ones [1, 2, 3]: Matplotlib, Seaborn, Plotly, and Bokeh. All these 4 libraries offer vast and 
+	detailed documentation [4, 5, 6, 7]. Out of these four, the Seaborn library is based primarily 
+	on Matplotlib [8]. While the former offers extra features that are not available in the latter, the 
+	similarity would make it difficult to compare these two in different aspects. Therefore, we 
+	chose Matplotlib as the first visualizer library not only for this reason, but also for past 
+	experiences. The second library we selected is Plotly. While the first one was chosen out of 
+	personal preferences, the second one was due to circumstances. It seems that Bokeh was not 
+	available on the Linux APT (Advanced Package Tool) on my side. Yet, when using Plotly, 
+	there are clear differences that can be seen between the two libraries. 
+	
+4.	An analytical comparison of the libraries used, advantages & disadvantages, simplicity & complexity, 
+	flexibility & configurations, anything you may think is necessary.
+
+	First and foremost, both Matplotlib and Plotly have detailed documentation. Between the 
+	two, in my opinion, Matplotlib is more popular and appealing to developers than Plotly. 
+	Therefore, we can find extra materials and help more easily on external forums. Meanwhile, 
+	Plotly requires deeper and more sophisticated experience, but produces more intricate 
+	visualizations [9]. On the technical side, there are striking similarities between two libraries 
+	when talking about syntaxes, making the switch a smoother experience. Having said that, 
+	when comparing a method to create a plot, scatter for example, Plotly’s has a significantly 
+	larger range of parameters than Matplotlib’s [10, 11]. Thus, for an inexperienced user, it can 
+	be difficult to pinpoint the necessary parameters for a particular purpose. One big difference 
+	between the two libraries is how they display the plot. For Matplotlib, a window with the 
+	graph will appear when running the program in a typical scenario. However, when working in 
+	a remote environment, users will not be able to see this window. On the other hand, Plotly 
+	uses JavaScript to display the graph on your default browser, and with its ability to 
+	automatically port forwarding to your host machine. As a result, users do not need to save the 
+	figure as an image to view it when using Matplotlib. On the topic of saving figures as images, 
+	Matplotlib only requires one line of code to perform. Meanwhile, Plotly requires external 
+	libraries to render the image to save images [12]. In summary, Matplotlib provides a simpler 
+	and more pleasant experience to produce static data visualizations, while Plotly intends to 
+	make more sophisticated and interactable graphs with more complex and elaborate data. 
+	Plotly’s syntaxes are more verbose and lengthier to account for its intricate data visualization, 
+	which is less suitable for beginners as opposed to Matplotlib’s more explicit methods. Finally, 
+	both libraries have different ways to render theirs graphs, making them depend on the user’s 
+	work environment.
+	
+5.	References
+	[1]: GeeksforGeeks, “Data Visualization with Python” geeksforgeeks.org. 
+	https://www.geeksforgeeks.org/data-visualization/data-visualization-with-python/ (accessed 
+	on Apr. 25, 2026)
+	[2]: J. Vorontsova, “Python Data Visualization: A Comprehensive Guide” Datylon.com. 
+	https://www.datylon.com/blog/a-complete-guide-to-python-data-visualization (accessed on 
+	Apr. 25, 2026)
+	[3]: J. Haberman & I. Akorita. “Five Python Data Visualization Examples to Transform Your 
+	Enterprise Data” anaconda.com. https://www.anaconda.com/topics/data-visualization-
+	examples (accessed on Apr. 25, 2026)
+	[4]: “API Reference” matplotlib.org. https://matplotlib.org/stable/api/index (accessed on Apr. 
+	25, 2026)
+	[5]: “API reference” seaborn.pydata.org. https://seaborn.pydata.org/api.html (accessed on 
+	Apr. 25, 2026)
+	[6]: “Python API reference for plotly” plotly.com. https://plotly.com/python-api-reference/ 
+	(accessed on Apr. 25, 2026)
+	[7]: “Reference”. docs.bokeh.org. https://docs.bokeh.org/en/latest/docs/reference.html 
+	(accessed on Apr. 25, 2026)
+	[8]: “seaborn: statistical data visualization” seaborn.pydata.org. https://seaborn.pydata.org/ 
+	(accessed on Apr. 25, 2026)
+	[9]: M. Popovic. “In-depth Analysis: Plotly vs Matplotlib in Python” docs.kanaries.net. 
+	https://docs.kanaries.net/articles/plotly-vs-matplotlib (accessed on Apr. 26, 2026)
+	[10]: “API Reference” matplotlib.org. 
+	https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.scatter.html (accessed on Apr. 
+	26, 2026)
+	[11]: “Python API reference for plotly” plotly.com. https://plotly.com/python-api-
+	reference/generated/plotly.express.scatter.html (accessed on Apr. 25, 2026)
+	[12]: “Static Image Export in Python” plotly.com. https://plotly.com/python/static-image-
+	export/ (accessed on Apr. 25, 2026)
+
+
+
