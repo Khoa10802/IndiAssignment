@@ -319,14 +319,20 @@ class DBLogger:
                 if not self._paused:
                     # get data
                     _, temp, temp_cate, humid, humid_cate = self.log_data()
+                    if temp > 99 or humid > 99: continue
                     i = 0
                     while i != display_count:
                         self.__mode_indicator()
 
-                        # write data to screen
-                        first_digit = int(temp / 10)
-                        second_digit = int(temp % 10)
-                        self.__write_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
+                        if temp < 0:
+                            self.__write_negative_screen("T", int(temp), color=TEMP_COLOR[temp_cate])
+                        elif temp < 10 and temp >= 0:
+                            self.__write_1digit_screen("T", int(temp), color=TEMP_COLOR[temp_cate])
+                        else:
+                            # write data to screen
+                            first_digit = int(temp / 10)
+                            second_digit = int(temp % 10)
+                            self.__write_2digit_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
 
                         time.sleep(DISPLAY_INTERVAL)
 
@@ -335,10 +341,15 @@ class DBLogger:
 
                         self._sense.clear()
 
-                        # write data to screen
-                        first_digit = int(humid / 10)
-                        second_digit = int(humid % 10)
-                        self.__write_screen("H", first_digit, second_digit, color=HUMID_COLOR[humid_cate])
+                        if humid < 0:
+                            self.__write_negative_screen("T", int(humid), color=HUMID_COLOR[humid_cate])
+                        elif humid < 10 and humid >= 0:
+                            self.__write_1digit_screen("T", int(humid), color=HUMID_COLOR[humid_cate])
+                        else:
+                            # write data to screen
+                            first_digit = int(humid / 10)
+                            second_digit = int(humid % 10)
+                            self.__write_2digit_screen("H", first_digit, second_digit, color=HUMID_COLOR[humid_cate])
 
                         time.sleep(DISPLAY_INTERVAL)
 
@@ -361,9 +372,14 @@ class DBLogger:
                     print(temp, temp_cate, humid, humid_cate) if self._debug else None
 
                     # write data to screen
-                    first_digit = int(temp / 10)
-                    second_digit = int(temp % 10)
-                    self.__write_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
+                    if temp < 0:
+                        self.__write_negative_screen("T", int(temp), color=TEMP_COLOR[temp_cate])
+                    elif temp < 10 and temp >= 0:
+                        self.__write_1digit_screen("T", int(temp), color=TEMP_COLOR[temp_cate])
+                    else:
+                        first_digit = int(temp / 10)
+                        second_digit = int(temp % 10)
+                        self.__write_screen("T", first_digit, second_digit, color=TEMP_COLOR[temp_cate])
 
                     time.sleep(HISTORY_DISPLAY_INTERVAL)
 
@@ -373,9 +389,14 @@ class DBLogger:
                     if self._live: break
 
                     # write data to screen
-                    first_digit = int(humid / 10)
-                    second_digit = int(humid % 10)
-                    self.__write_screen("H", first_digit, second_digit, color=HUMID_COLOR[humid_cate])
+                    if humid < 0:
+                        self.__write_negative_screen("T", int(humid), color=HUMID_COLOR[humid_cate])
+                    elif humid < 10 and humid >= 0:
+                        self.__write_1digit_screen("T", int(humid), color=HUMID_COLOR[humid_cate])
+                    else:
+                        first_digit = int(humid / 10)
+                        second_digit = int(humid % 10)
+                        self.__write_screen("H", first_digit, second_digit, color=HUMID_COLOR[humid_cate])
 
                     time.sleep(HISTORY_DISPLAY_INTERVAL)
 
@@ -472,7 +493,23 @@ class DBLogger:
             self._screen[startAt:startAt+4] = number_matrix[i:i+4]
             startAt += 8
 
-    def __write_screen(self, letter: str, fdigit: int, sdigit: int, color, bcolor=COLOR.BLACK):
+    def __write_minus_sign(self, startAt: int, color=COLOR.WHITE, bgcolor=COLOR.BLACK):
+        X = color.value
+        O = bgcolor.value
+
+        minus_sign = [
+            O, O, O, O,
+            O, O, O, O,
+            X, X, X, X,
+            O, O, O, O,
+            O, O, O, O
+        ]
+
+        for i in range(0, 20 - 4 + 1, 4):
+            self._screen[startAt:startAt+4] = minus_sign[i:i+4]
+            startAt += 8
+
+    def __write_2digit_screen(self, letter: str, fdigit: int, sdigit: int, color, bcolor=COLOR.BLACK):
         """
         Writes a letter and two numbers to the screen.
 
@@ -484,12 +521,54 @@ class DBLogger:
             bcolor (COLOR): The background color.
         """
         LETTER_START_INDEX = 4
-        FIRST_NUMBER_START_INDEX = 24
-        SECOND_NUMBER_START_INDEX = 28
+        FIRST_DIGIT_START_INDEX = 24
+        SECOND_DIGIT_START_INDEX = 28
+
+        self._screen = [COLOR.BLACK.value] * 64
 
         self.__write_letter(letter, startAt=LETTER_START_INDEX)
-        self.__write_number(fdigit, startAt=FIRST_NUMBER_START_INDEX, color=color)
-        self.__write_number(sdigit, startAt=SECOND_NUMBER_START_INDEX, color=color)
+        self.__write_number(fdigit, startAt=FIRST_DIGIT_START_INDEX, color=color)
+        self.__write_number(sdigit, startAt=SECOND_DIGIT_START_INDEX, color=color)
+        self._sense.set_pixels(self._screen)
+
+    def __write_1digit_screen(self, letter: str, digit: int, color, bcolor=COLOR.BLACK):
+        """
+        Writes a letter and one numbers to the screen.
+
+        Parameters:
+            letter (str): The letter to write (H or T).
+            digit (int): The first digit to write (0-9).
+            color (COLOR): The color of the text.
+            bcolor (COLOR): The background color.
+        """
+        LETTER_START_INDEX = 4
+        DIGIT_START_INDEX = 28
+
+        self._screen = [COLOR.BLACK.value] * 64
+
+        self.__write_letter(letter, startAt=LETTER_START_INDEX)
+        self.__write_number(digit, startAt=DIGIT_START_INDEX, color=color)
+        self._sense.set_pixels(self._screen)
+        
+    def __write_negative_screen(self, letter: str, digit: int, color, bcolor=COLOR.BLACK):
+        """
+        Writes a letter and one numbers to the screen.
+
+        Parameters:
+            letter (str): The letter to write (H or T).
+            digit (int): The first digit to write (0-9).
+            color (COLOR): The color of the text.
+            bcolor (COLOR): The background color.
+        """
+        LETTER_START_INDEX = 4
+        MINUS_SIGN_START = 24
+        DIGIT_START_INDEX = 28
+
+        self._screen = [COLOR.BLACK.value] * 64
+
+        self.__write_letter(letter, startAt=LETTER_START_INDEX)
+        self.__write_minus_sign(startAt=MINUS_SIGN_START, color=color)
+        self.__write_number(digit, startAt=DIGIT_START_INDEX, color=color)
         self._sense.set_pixels(self._screen)
 
     def close_db(self):
