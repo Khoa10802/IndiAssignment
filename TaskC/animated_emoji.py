@@ -28,7 +28,7 @@ class AnimatedEmoji:
 
     _debug = False
     _current_emoji_index = 0
-    _frame_one = True
+    _frame_two = True
 
     def __new__(cls):
         with cls._lock:
