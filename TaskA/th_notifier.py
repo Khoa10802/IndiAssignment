@@ -431,7 +431,7 @@ class DBLogger:
         """
         Callback function for the joystick's up direction to pause or resume logging when pressed.
         """
-        if event.action == ACTION_PRESSED:
+        if event.action == ACTION_PRESSED and self._live:
             self._paused = not self._paused
             print("Logging paused." if self._paused else "Logging resumed.") if self._debug else None
 
@@ -441,6 +441,7 @@ class DBLogger:
         """
         if event.action == ACTION_PRESSED and self._paused:
             self._live = not self._live
+            if self._live: self._paused = False
             print("Switching to live mode." if self._live else "Switching to history mode") if self._debug else None
 
     def __mode_indicator(self):
